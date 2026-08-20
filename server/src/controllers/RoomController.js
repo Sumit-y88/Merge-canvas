@@ -10,7 +10,7 @@ import {
     removeCollaborator,
     leaveRoom,
     deleteRoom as deleteRoomService,
-} from "../services/roomService.js";
+} from "../services/RoomService.js";
 import { validateCanvasData } from "../utils/payloadValidation.js";
 
 export const createRoom = async (req, res) => {
