@@ -8,9 +8,11 @@ import { requestLogger, logger } from "./utils/logger.js";
 
 dotenv.config();
 
-export const clientOrigins = (process.env.CLIENT_URL || "http://localhost:5173")
+const normalizeOrigin = (origin) => origin.trim().replace(/^['"]|['"]$/g, "").replace(/\/+$/, "");
+
+export const clientOrigins = (process.env.CLIENT_URL || "https://merge-canvas.vercel.app")
     .split(",")
-    .map((origin) => origin.trim())
+    .map(normalizeOrigin)
     .filter(Boolean);
 export const clientOrigin = clientOrigins[0];
 const app = express();
@@ -22,7 +24,7 @@ app.use(requestLogger);
 app.use(securityHeaders);
 app.use(cors({
     origin: (origin, callback) => {
-        if (!origin || clientOrigins.includes(origin)) return callback(null, true);
+        if (!origin || clientOrigins.includes(normalizeOrigin(origin))) return callback(null, true);
         return callback(new Error("Origin is not allowed"));
     },
     credentials: true,
