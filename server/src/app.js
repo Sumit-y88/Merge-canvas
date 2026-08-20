@@ -9,11 +9,11 @@ import { requestLogger, logger } from "./utils/logger.js";
 dotenv.config();
 
 const normalizeOrigin = (origin) => origin.trim().replace(/^['"]|['"]$/g, "").replace(/\/+$/, "");
-
-export const clientOrigins = (process.env.CLIENT_URL || "https://merge-canvas.vercel.app")
+const configuredClientOrigins = (process.env.CLIENT_URL || "")
     .split(",")
     .map(normalizeOrigin)
     .filter(Boolean);
+export const clientOrigins = [...new Set(["https://merge-canvas.vercel.app", ...configuredClientOrigins])];
 export const clientOrigin = clientOrigins[0];
 const app = express();
 app.locals.dbReady = false;
