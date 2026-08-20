@@ -1,0 +1,8 @@
+server/.env
+client/.env
+server/.env.production
+client/.env.production
+node_modules/
+dist/
+ops/certs/
+backups/

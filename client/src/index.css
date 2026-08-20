@@ -1,0 +1,177 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 40 20% 97.3%;
+    --foreground: 20 9% 10.2%;
+
+    --surface: 0 0% 100%;
+    --card: var(--surface);
+    --card-foreground: var(--foreground);
+
+    --popover: var(--surface);
+    --popover-foreground: var(--foreground);
+
+    --primary: 29 93% 36.7%;
+    --primary-hover: 26 84% 31.4%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 35 20% 92%;
+    --secondary-foreground: var(--foreground);
+
+    --muted: 35 20% 92%;
+    --muted-foreground: 24 5% 46.3%;
+
+    --accent: var(--secondary);
+    --accent-foreground: var(--foreground);
+
+    --success: 142 70% 30%;
+    --warning: 29 93% 36.7%;
+    --destructive: 0 72% 42%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 35 20% 88%;
+    --input: var(--border);
+    --ring: var(--primary);
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 20 14% 4.1%;
+    --foreground: 36 20% 95%;
+
+    --surface: 25 13% 8.2%;
+    --card: var(--surface);
+    --card-foreground: var(--foreground);
+
+    --popover: var(--surface);
+    --popover-foreground: var(--foreground);
+
+    --primary: 37 91% 55.5%;
+    --primary-hover: 38 92% 56.1%;
+    --primary-foreground: 20 9% 10.2%;
+
+    --secondary: 20 14% 12%;
+    --secondary-foreground: var(--foreground);
+
+    --muted: var(--secondary);
+    --muted-foreground: 24 5% 64.7%;
+
+    --accent: var(--secondary);
+    --accent-foreground: var(--foreground);
+
+    --success: 142 69% 58.4%;
+    --warning: 37 91% 55.5%;
+    --destructive: 0 91% 70.6%;
+    --destructive-foreground: 20 9% 10.2%;
+
+    --border: 36 23% 95% / 0.08;
+    --input: var(--border);
+    --ring: var(--primary);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased selection:bg-primary/20 selection:text-primary min-h-screen transition-colors duration-200;
+  }
+}
+
+/* Custom Glassmorphism Utilities */
+.glass-card {
+  background: hsl(var(--surface) / 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid hsl(var(--foreground) / 0.08);
+}
+
+.dark .glass-card {
+  background: hsl(var(--surface) / 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel {
+  background: hsl(var(--surface) / 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid hsl(var(--foreground) / 0.08);
+}
+
+/* Excalidraw-style canvas guide dots. The canvas itself remains transparent
+   so these dots never become part of the drawable/exportable content. */
+.canvas-dot-grid {
+  background-color: hsl(var(--background));
+  background-image: radial-gradient(
+    circle,
+    hsl(var(--muted-foreground) / 0.28) 1px,
+    transparent 1px
+  );
+  background-size: 24px 24px;
+}
+
+.dark .glass-panel {
+  background: hsl(var(--surface) / 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/30 transition-colors;
+}
+
+/* ─── Landing page SVG animations ─── */
+.landing-draw-path {
+  animation: landingDraw 2.5s ease-out forwards;
+}
+
+@keyframes landingDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.landing-merge-dot {
+  animation: landingPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes landingPulse {
+  0%, 100% {
+    opacity: 1;
+    r: 4;
+  }
+  50% {
+    opacity: 0.5;
+    r: 6;
+  }
+}
+
+.landing-merge-line {
+  animation: landingGrow 1.2s ease-out forwards;
+  stroke-dasharray: 30;
+  stroke-dashoffset: 30;
+}
+
+@keyframes landingGrow {
+  to {
+    stroke-dashoffset: 0;
+  }
+}

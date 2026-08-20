@@ -1,0 +1,41 @@
+services:
+  server:
+    build: ./server
+    restart: unless-stopped
+    env_file: ./server/.env.production
+    depends_on:
+      - mongo
+      - redis
+    expose:
+      - "5000"
+
+  client:
+    build:
+      context: ./client
+      args:
+        VITE_API_URL: https://${APP_DOMAIN}/api
+    restart: unless-stopped
+    depends_on:
+      - server
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./ops/certs:/etc/nginx/certs:ro
+
+  mongo:
+    image: mongo:8
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+
+volumes:
+  mongo-data:
+  redis-data:

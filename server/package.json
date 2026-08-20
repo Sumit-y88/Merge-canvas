@@ -1,0 +1,35 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "\"This is a canva project that solve the merger problem\"",
+  "keywords": [
+    "canvas"
+  ],
+  "license": "ISC",
+  "author": "sumit yadav",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "mongodb-memory-server": "^11.2.0",
+    "socket.io-client": "^4.8.3",
+    "supertest": "^7.2.2"
+  },
+  "dependencies": {
+    "@socket.io/redis-adapter": "^8.3.0",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "google-auth-library": "^11.0.2",
+    "ioredis": "^5.11.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.9.1",
+    "socket.io": "^4.8.3",
+    "yjs": "^13.6.32"
+  }
+}
