@@ -12,7 +12,7 @@ import {
     removeRoomCollaborator,
     leave,
     deleteRoom,
-} from "../controllers/roomController.js";
+} from "../controllers/RoomController.js";
 
 const router = express.Router();
 
