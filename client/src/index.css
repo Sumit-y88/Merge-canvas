@@ -4,8 +4,9 @@
 
 @layer base {
   :root {
-    --background: 40 20% 97.3%;
-    --foreground: 20 9% 10.2%;
+    /* Monochrome system: black, white, and neutral gray throughout the UI. */
+    --background: 0 0% 97%;
+    --foreground: 0 0% 8%;
 
     --surface: 0 0% 100%;
     --card: var(--surface);
@@ -14,61 +15,61 @@
     --popover: var(--surface);
     --popover-foreground: var(--foreground);
 
-    --primary: 29 93% 36.7%;
-    --primary-hover: 26 84% 31.4%;
+    --primary: 0 0% 10%;
+    --primary-hover: 0 0% 22%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 35 20% 92%;
+    --secondary: 0 0% 92%;
     --secondary-foreground: var(--foreground);
 
-    --muted: 35 20% 92%;
-    --muted-foreground: 24 5% 46.3%;
+    --muted: 0 0% 92%;
+    --muted-foreground: 0 0% 42%;
 
     --accent: var(--secondary);
     --accent-foreground: var(--foreground);
 
-    --success: 142 70% 30%;
-    --warning: 29 93% 36.7%;
-    --destructive: 0 72% 42%;
+    --success: 0 0% 28%;
+    --warning: 0 0% 42%;
+    --destructive: 0 0% 20%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 35 20% 88%;
+    --border: 0 0% 85%;
     --input: var(--border);
     --ring: var(--primary);
 
-    --radius: 0.75rem;
+    --radius: 0.875rem;
   }
 
   .dark {
-    --background: 20 14% 4.1%;
-    --foreground: 36 20% 95%;
+    --background: 0 0% 7%;
+    --foreground: 0 0% 96%;
 
-    --surface: 25 13% 8.2%;
+    --surface: 0 0% 11%;
     --card: var(--surface);
     --card-foreground: var(--foreground);
 
     --popover: var(--surface);
     --popover-foreground: var(--foreground);
 
-    --primary: 37 91% 55.5%;
-    --primary-hover: 38 92% 56.1%;
-    --primary-foreground: 20 9% 10.2%;
+    --primary: 0 0% 96%;
+    --primary-hover: 0 0% 84%;
+    --primary-foreground: 0 0% 8%;
 
-    --secondary: 20 14% 12%;
+    --secondary: 0 0% 17%;
     --secondary-foreground: var(--foreground);
 
     --muted: var(--secondary);
-    --muted-foreground: 24 5% 64.7%;
+    --muted-foreground: 0 0% 68%;
 
     --accent: var(--secondary);
     --accent-foreground: var(--foreground);
 
-    --success: 142 69% 58.4%;
-    --warning: 37 91% 55.5%;
-    --destructive: 0 91% 70.6%;
-    --destructive-foreground: 20 9% 10.2%;
+    --success: 0 0% 82%;
+    --warning: 0 0% 70%;
+    --destructive: 0 0% 88%;
+    --destructive-foreground: 0 0% 8%;
 
-    --border: 36 23% 95% / 0.08;
+    --border: 0 0% 100% / 0.14;
     --input: var(--border);
     --ring: var(--primary);
   }
@@ -80,6 +81,30 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased selection:bg-primary/20 selection:text-primary min-h-screen transition-colors duration-200;
+  }
+  img, svg, video, canvas {
+    max-width: 100%;
+  }
+}
+
+/* Keep marketing surfaces usable between the common breakpoint sizes. */
+@media (max-width: 640px) {
+  [data-hero] {
+    padding-top: 3rem;
+    padding-bottom: 4.5rem;
+  }
+
+  [data-hero] h1 {
+    font-size: clamp(2.75rem, 13vw, 4rem);
+    line-height: 0.98;
+  }
+
+  [data-hero-canvas] {
+    margin-top: 3.5rem;
+  }
+
+  [data-hero-canvas] > div:last-child {
+    font-size: 0.625rem;
   }
 }
 
@@ -130,7 +155,7 @@
 .auth-page__glow--secondary {
   right: -12rem;
   bottom: -15rem;
-  background: hsl(190 75% 45%);
+  background: hsl(var(--accent));
 }
 
 .auth-page__network {
@@ -149,7 +174,7 @@
 }
 
 .auth-page__path--two {
-  stroke: hsl(190 75% 45% / 0.28);
+  stroke: hsl(var(--accent) / 0.28);
   animation: authPathDrift 24s linear infinite reverse;
 }
 
@@ -165,7 +190,7 @@
 }
 
 .auth-page__node--three {
-  stroke: hsl(190 75% 45% / 0.55);
+  stroke: hsl(var(--accent) / 0.55);
   animation-delay: 1.2s;
 }
 
@@ -187,14 +212,16 @@
 
 /* Keep Google's official control responsive without adding a competing outline. */
 .google-signin-shell {
-  width: min(100%, 20rem);
+  width: 100%;
+  max-width: 20rem;
   overflow: hidden;
 }
 
 .google-signin-shell > div,
 .google-signin-shell iframe {
   display: block;
-  max-width: 100%;
+  width: 100% !important;
+  max-width: 100% !important;
   border-radius: 9999px;
 }
 

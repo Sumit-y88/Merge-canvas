@@ -487,7 +487,7 @@ const WhiteboardRoom = () => {
             <p className="text-[11px] text-muted-foreground flex items-center gap-2 truncate">
               <span
                 className={`inline-block w-2 h-2 rounded-full ${
-                  connectionState === "connected" ? "bg-emerald-500" : "bg-amber-500"
+                  connectionState === "connected" ? "bg-success" : "bg-warning"
                 }`}
               />
               {connectionState === "connected" ? "Live session" : "Connecting..."}
@@ -639,14 +639,14 @@ const WhiteboardRoom = () => {
                 className="shrink-0"
               >
                 {copied ? (
-                  <Check className="w-4 h-4 text-emerald-500" />
+                  <Check className="w-4 h-4 text-success" />
                 ) : (
                   <Copy className="w-4 h-4" />
                 )}
               </Button>
             </div>
             {copied && (
-              <p className="text-xs text-emerald-500 mt-1 animate-fade-in">
+              <p className="text-xs text-success mt-1 animate-fade-in">
                 Copied to clipboard!
               </p>
             )}

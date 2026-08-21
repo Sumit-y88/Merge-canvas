@@ -1,5 +1,11 @@
+import { Link } from "react-router-dom";
+import { GitMerge } from "lucide-react";
+import ThemeToggle from "./ThemeToggle";
+
 const AuthPageShell = ({ children }) => (
-  <main className="auth-page relative flex min-h-screen items-center justify-center overflow-hidden bg-background p-4">
+  <main className="auth-page relative flex min-h-screen items-start justify-center overflow-x-hidden overflow-y-auto bg-background px-4 pb-10 pt-24 sm:items-center sm:p-6">
+    <div className="absolute left-4 top-4 z-20 sm:left-5 sm:top-5"><Link to="/" className="flex items-center gap-2 font-semibold"><span className="grid h-8 w-8 place-items-center rounded-xl bg-primary text-primary-foreground"><GitMerge className="h-4 w-4" /></span>Merge<span className="text-primary">Canvas</span></Link></div>
+    <div className="absolute right-4 top-4 z-20 sm:right-5 sm:top-5"><ThemeToggle /></div>
     <div className="auth-page__grid absolute inset-0" aria-hidden="true" />
     <div className="auth-page__glow auth-page__glow--primary absolute" aria-hidden="true" />
     <div className="auth-page__glow auth-page__glow--secondary absolute" aria-hidden="true" />

@@ -14,7 +14,7 @@ const Profile = () => {
   const { user, updateUser, logout } = useAuth();
   const [profile, setProfile] = useState(user);
   const [name, setName] = useState(user?.name || "");
-  const [avatarColor, setAvatarColor] = useState(user?.avatarColor || "#2563EB");
+  const [avatarColor, setAvatarColor] = useState(user?.avatarColor || "#6b7280");
   const [loading, setLoading] = useState(true);
   const [profileSaving, setProfileSaving] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
@@ -29,7 +29,7 @@ const Profile = () => {
         const data = await getProfile();
         setProfile(data);
         setName(data.name);
-        setAvatarColor(data.avatarColor || "#2563EB");
+        setAvatarColor(data.avatarColor || "#6b7280");
         updateUser(data);
       } catch (requestError) {
         setError(requestError.response?.data?.message || "Unable to load your profile");
@@ -110,7 +110,7 @@ const Profile = () => {
 
       <main className="relative px-4 sm:px-6 py-10 sm:py-14">
         <div className="absolute -top-52 -left-32 w-96 h-96 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
-        <div className="absolute top-48 -right-40 w-96 h-96 rounded-full bg-amber-400/10 blur-3xl pointer-events-none" />
+        <div className="absolute top-48 -right-40 w-96 h-96 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
         <div className="max-w-5xl mx-auto space-y-6 relative">
           <section className="grid lg:grid-cols-[1.1fr_0.9fr] gap-7 lg:gap-12 items-end mb-10">
             <div>
@@ -118,14 +118,13 @@ const Profile = () => {
               <h1 className="text-3xl sm:text-4xl font-bold tracking-tight leading-tight">Your canvas, <span className="text-primary">your presence.</span></h1>
               <p className="text-muted-foreground mt-3 leading-relaxed max-w-xl">Keep your details current and make your collaboration identity feel like you.</p>
             </div>
-            <div className="hidden lg:flex items-center justify-end gap-3 text-xs font-mono text-muted-foreground"><span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" /> account synced</div>
+            <div className="hidden lg:flex items-center justify-end gap-3 text-xs font-mono text-muted-foreground"><span className="w-2 h-2 bg-success rounded-full animate-pulse" /> account synced</div>
           </section>
 
         <Card className="glass-card border-border/60 shadow-glass">
           <CardContent className="p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center gap-5">
-            <div className="relative w-fit p-1 rounded-full bg-gradient-to-br from-primary/60 via-amber-400/40 to-primary/20">
-              <Avatar name={name || "User"} size="xl" status="online" className="ring-4 ring-card" />
-              <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-card" style={{ backgroundColor: avatarColor }} />
+            <div className="relative w-fit rounded-full bg-gradient-to-br from-primary/60 via-accent/40 to-primary/20 p-1">
+              <Avatar name={name || "User"} size="xl" status="online" statusColor={avatarColor} />
             </div>
             <div className="min-w-0">
               <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-primary mb-1">Collaboration identity</p>
@@ -152,7 +151,7 @@ const Profile = () => {
                   <div><p className="text-sm font-medium">Cursor color</p><p className="text-xs text-muted-foreground">Used for your live collaboration cursor.</p></div>
                   <input aria-label="Cursor color" type="color" value={avatarColor} onChange={(event) => setAvatarColor(event.target.value)} className="h-9 w-12 cursor-pointer rounded-lg border border-border bg-transparent p-1" />
                 </div>
-                {profileMessage && <p className="text-sm text-emerald-600 flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4" />{profileMessage}</p>}
+                {profileMessage && <p className="text-sm text-success flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4" />{profileMessage}</p>}
                 <Button type="submit" isLoading={profileSaving} leftIcon={<Save className="w-4 h-4" />}>Save profile</Button>
               </form>
             </CardContent>
@@ -168,7 +167,7 @@ const Profile = () => {
                 <Input label="Current password" type="password" value={passwords.currentPassword} onChange={(event) => setPasswords((current) => ({ ...current, currentPassword: event.target.value }))} required />
                 <Input label="New password" type="password" value={passwords.newPassword} onChange={(event) => setPasswords((current) => ({ ...current, newPassword: event.target.value }))} minLength="6" required />
                 <Input label="Confirm new password" type="password" value={passwords.confirmPassword} onChange={(event) => setPasswords((current) => ({ ...current, confirmPassword: event.target.value }))} minLength="6" required />
-                {passwordMessage && <p className="text-sm text-emerald-600 flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4" />{passwordMessage}</p>}
+                {passwordMessage && <p className="text-sm text-success flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4" />{passwordMessage}</p>}
                 <Button type="submit" variant="outline" isLoading={passwordSaving} leftIcon={<KeyRound className="w-4 h-4" />}>Update password</Button>
               </form>
             </CardContent>

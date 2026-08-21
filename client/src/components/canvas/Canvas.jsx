@@ -1295,7 +1295,7 @@ const Canvas = ({
             }
           }}
           className={`absolute z-20 resize-none border-2 border-primary bg-background p-2 text-foreground outline-none shadow-lg pointer-events-auto rounded-lg ${
-            editingText.type === "sticky" ? "font-sans font-medium text-slate-800" : ""
+            editingText.type === "sticky" ? "font-sans font-medium text-foreground" : ""
           }`}
           style={{
             left: editingText.x * zoom + pan.x + (editingText.type === "sticky" ? 12 * zoom : 0),

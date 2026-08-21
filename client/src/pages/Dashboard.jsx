@@ -165,7 +165,7 @@ const Dashboard = () => {
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-h-screen relative overflow-auto" style={{ backgroundImage: "radial-gradient(rgba(255,255,255,0.09) 1px, transparent 1px)", backgroundSize: "26px 26px" }}>
+      <div className="flex-1 flex flex-col min-h-screen relative overflow-auto" style={{ backgroundImage: "radial-gradient(hsl(var(--muted-foreground) / 0.12) 1px, transparent 1px)", backgroundSize: "26px 26px" }}>
         {/* Top bar */}
         <header className="h-16 border-b border-border flex items-center justify-between px-4 sm:px-6 bg-background/80 backdrop-blur-xl shrink-0 relative z-10 md:hidden">
           {/* Mobile logo */}
@@ -193,7 +193,7 @@ const Dashboard = () => {
               <h1 className="text-3xl sm:text-[36px] font-bold tracking-tight leading-none">My Rooms</h1>
               <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                 <span>{rooms.length} room{rooms.length !== 1 ? "s" : ""}</span>
-                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 text-xs font-mono"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> live sync</span>
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-success/40 bg-success/10 text-success text-xs font-mono"><span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" /> live sync</span>
               </div>
             </div>
             <div className="flex gap-3 shrink-0">
@@ -267,8 +267,8 @@ const Dashboard = () => {
                   onClick={() => navigate(`/room/${room._id}`)}
                 >
                   <div className="h-28 m-5 mb-0 rounded-lg border border-border bg-secondary/50 relative overflow-hidden">
-                    <div className="absolute inset-0 opacity-60" style={{ backgroundImage: "radial-gradient(rgba(255,255,255,0.16) 1px, transparent 1px)", backgroundSize: "14px 14px" }} />
-                    {roomIndex % 2 === 0 ? <><div className="absolute left-12 top-5 w-16 h-12 rounded-lg border-2 border-[#ffa31a]" /><div className="absolute left-[112px] top-[42px] w-9 h-[2px] bg-emerald-400" /><div className="absolute left-[150px] top-[26px] w-16 h-14 rounded-full border-2 border-[#ffa31a]" /><div className="absolute right-16 top-5 h-16 w-6 border-r-2 border-pink-400 rounded-full" /></> : <><div className="absolute left-14 top-8 w-10 h-10 rounded-full border-t-2 border-l-2 border-pink-400" /><div className="absolute left-18 bottom-3 h-9 w-10 border-2 border-dashed border-white/35" /><div className="absolute right-20 top-5 w-20 h-16 rounded-xl bg-[#4b3515]" /><div className="absolute right-24 top-9 w-12 h-px bg-[#b47a1c]" /><div className="absolute right-24 top-[51px] w-9 h-px bg-[#b47a1c]" /></>}
+                    <div className="absolute inset-0 opacity-60" style={{ backgroundImage: "radial-gradient(hsl(var(--muted-foreground) / 0.16) 1px, transparent 1px)", backgroundSize: "14px 14px" }} />
+                    {roomIndex % 2 === 0 ? <><div className="absolute left-12 top-5 w-16 h-12 rounded-lg border-2 border-primary" /><div className="absolute left-[112px] top-[42px] w-9 h-[2px] bg-success" /><div className="absolute left-[150px] top-[26px] w-16 h-14 rounded-full border-2 border-primary" /><div className="absolute right-16 top-5 h-16 w-6 border-r-2 border-accent rounded-full" /></> : <><div className="absolute left-14 top-8 w-10 h-10 rounded-full border-t-2 border-l-2 border-accent" /><div className="absolute left-18 bottom-3 h-9 w-10 border-2 border-dashed border-muted-foreground/35" /><div className="absolute right-20 top-5 w-20 h-16 rounded-xl bg-primary/20" /><div className="absolute right-24 top-9 w-12 h-px bg-primary/60" /><div className="absolute right-24 top-[51px] w-9 h-px bg-primary/60" /></>}
                   </div>
                   <CardHeader className="pt-4 pb-3">
                     <div className="flex items-start justify-between gap-2">

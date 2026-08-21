@@ -16,19 +16,19 @@ const statusSizeClasses = {
 };
 
 const statusClasses = {
-  online: "bg-emerald-500 ring-background",
-  offline: "bg-slate-400 ring-background",
-  away: "bg-amber-500 ring-background",
-  busy: "bg-rose-500 ring-background",
+  online: "bg-success",
+  offline: "bg-muted-foreground",
+  away: "bg-warning",
+  busy: "bg-destructive",
 };
 
 const gradients = [
-  "from-emerald-600 to-teal-600",
-  "from-emerald-600 to-teal-600",
-  "from-rose-600 to-pink-600",
-  "from-amber-600 to-orange-600",
-  "from-cyan-600 to-blue-600",
-  "from-cyan-600 to-blue-600",
+  "from-primary to-accent",
+  "from-accent to-primary",
+  "from-destructive to-primary",
+  "from-warning to-primary",
+  "from-primary to-success",
+  "from-accent to-success",
 ];
 
 function getInitials(name = "") {
@@ -53,6 +53,7 @@ export const Avatar = ({
   name = "User",
   size = "md",
   status,
+  statusColor,
   className,
   ...props
 }) => {
@@ -61,10 +62,10 @@ export const Avatar = ({
   const gradient = gradients[getGradientIndex(name)];
 
   return (
-    <div className={cn("relative inline-block shrink-0 select-none", className)} {...props}>
+    <div className={cn("relative inline-flex shrink-0 select-none", className)} {...props}>
       <div
         className={cn(
-          "rounded-full flex items-center justify-center overflow-hidden border border-border shadow-sm text-white transition-transform duration-200",
+          "relative flex aspect-square items-center justify-center overflow-hidden rounded-full border border-foreground/10 text-primary-foreground shadow-sm transition-shadow duration-200",
           sizeClasses[size] || sizeClasses.md,
           !src || imageError ? `bg-gradient-to-br ${gradient}` : "bg-secondary"
         )}
@@ -77,17 +78,18 @@ export const Avatar = ({
             className="w-full h-full object-cover"
           />
         ) : (
-          <span>{initials}</span>
+          <span className="select-none leading-none tracking-tight">{initials}</span>
         )}
       </div>
 
       {status && (
         <span
           className={cn(
-            "absolute bottom-0 right-0 rounded-full ring-2 ring-background shrink-0",
+            "absolute bottom-0 right-0 z-10 shrink-0 rounded-full border-2 border-card shadow-sm",
             statusSizeClasses[size] || statusSizeClasses.md,
             statusClasses[status] || statusClasses.offline
           )}
+          style={statusColor ? { backgroundColor: statusColor } : undefined}
           title={`Status: ${status}`}
         />
       )}

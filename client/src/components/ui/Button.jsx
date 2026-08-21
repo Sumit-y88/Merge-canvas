@@ -12,7 +12,7 @@ const variantClasses = {
   ghost:
     "hover:bg-secondary/80 hover:text-foreground text-muted-foreground active:scale-[0.98]",
   glass:
-    "glass-card text-foreground hover:bg-white/80 dark:hover:bg-white/10 active:scale-[0.98]",
+    "glass-card text-foreground hover:bg-accent/60 active:scale-[0.98]",
   danger:
     "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm active:scale-[0.98]",
 };
