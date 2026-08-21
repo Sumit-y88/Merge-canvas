@@ -60,6 +60,8 @@ const WhiteboardRoom = () => {
   const pendingCanvasRef = useRef(null);
   const yDocRef = useRef(null);
   const canvasStateRef = useRef([]);
+  const lastKnownWriteAtRef = useRef(0);
+  const isDraggingRef = useRef(false);
   const cursorThrottleRef = useRef(null);
   const imageInputRef = useRef(null);
 
@@ -190,12 +192,19 @@ const WhiteboardRoom = () => {
     (canvasData) => {
       if (!room) return;
       canvasStateRef.current = canvasData;
+      lastKnownWriteAtRef.current = Date.now();
 
       if (yDocRef.current) {
         setSaveState("saving");
         canvasToYDoc(yDocRef.current, canvasData);
         if (socketRef.current?.connected && roomJoinedRef.current) {
           socketRef.current.emit("canvas:snapshot", { roomId: id, canvasData }, (result) => {
+            if (result?.ok && result.savedAt) {
+              lastKnownWriteAtRef.current = Math.max(
+                lastKnownWriteAtRef.current,
+                new Date(result.savedAt).getTime()
+              );
+            }
             setSaveError(result?.ok ? "" : result?.message || "Unable to synchronize canvas changes");
             setSaveState(result?.ok ? "saved" : "error");
           });
@@ -264,10 +273,12 @@ const WhiteboardRoom = () => {
   useEffect(() => {
     if (!room) return undefined;
     const reconcileCanvas = async () => {
-      if (reconciliationInFlightRef.current) return;
+      if (reconciliationInFlightRef.current || isDraggingRef.current) return;
       reconciliationInFlightRef.current = true;
+      const requestedAt = Date.now();
       try {
         const latestRoom = await getRoomById(id);
+        if (lastKnownWriteAtRef.current > requestedAt || isDraggingRef.current) return;
         const latestCanvas = latestRoom.canvasData || [];
         if (JSON.stringify(latestCanvas) !== JSON.stringify(canvasStateRef.current)) {
           canvasStateRef.current = latestCanvas;
@@ -556,6 +567,9 @@ const WhiteboardRoom = () => {
           zoomCommand={zoomCommand}
           onZoomChange={setZoom}
           onElementsChange={handleCanvasChange}
+          onInteractionActiveChange={(active) => {
+            isDraggingRef.current = active;
+          }}
           onCursorMove={handleCursorMove}
           onToolChange={setActiveTool}
           onHistoryChange={setHistoryControls}

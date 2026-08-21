@@ -454,6 +454,7 @@ const Canvas = ({
   zoomCommand = null,
   onZoomChange,
   onElementsChange,
+  onInteractionActiveChange,
   onCursorMove,
   onToolChange,
   onHistoryChange,
@@ -882,6 +883,7 @@ const Canvas = ({
   };
 
   const startInteraction = (event) => {
+    onInteractionActiveChange?.(true);
     const point = getPoint(event, canvasRef.current, zoom, pan);
     const isPanGesture = event.button === 1 || spacePressedRef.current;
 
@@ -1120,7 +1122,10 @@ const Canvas = ({
 
   const finishInteraction = (event) => {
     const interaction = interactionRef.current;
-    if (!interaction) return;
+    if (!interaction) {
+      onInteractionActiveChange?.(false);
+      return;
+    }
 
     if (["draw", "shape"].includes(interaction.type) && draft) {
       if (draft.type === "sticky") {
@@ -1160,6 +1165,7 @@ const Canvas = ({
     setIsPanning(false);
     setDraft(null);
     interactionRef.current = null;
+    onInteractionActiveChange?.(false);
   };
 
   const commitText = () => {
