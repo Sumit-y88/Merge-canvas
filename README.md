@@ -103,6 +103,33 @@ Under the hood, canvas state is modeled as a **Yjs CRDT document**, synced over 
 
 ## Architecture
 
+```mermaid
+flowchart LR
+    U[Collaborators] --> C[React + Vite client]
+
+    subgraph Client[Browser client]
+        C --> UI[Canvas, rooms, and authentication UI]
+        C --> Y[Yjs CRDT document]
+    end
+
+    UI <-->|HTTPS REST: auth and room APIs| API
+    Y <-->|Socket.IO: presence, cursors, and CRDT updates| RT
+
+    subgraph Server[Node.js server]
+        API[Express API]
+        RT[Socket.IO realtime service]
+        YDOC[Per-room Yjs document cache]
+        API --> AUTH[JWT and role middleware]
+        RT --> AUTH
+        RT <--> YDOC
+    end
+
+    API <--> DB[(MongoDB)]
+    YDOC <--> DB
+    RT -. "Optional Socket.IO adapter" .-> REDIS[(Redis)]
+    AUTH -. "Optional shared rate limiter" .-> REDIS
+```
+
 ```
 ┌──────────────┐        HTTPS (REST)        ┌────────────────────┐
 │              │ ─────────────────────────▶ │                    │
