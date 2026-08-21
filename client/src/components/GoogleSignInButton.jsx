@@ -42,6 +42,8 @@ const GoogleSignInButton = () => {
       window.google.accounts.id.renderButton(buttonRef.current, {
         theme: "outline",
         size: "large",
+        shape: "pill",
+        logo_alignment: "center",
         width: 320,
         text: "continue_with",
       });
@@ -54,8 +56,8 @@ const GoogleSignInButton = () => {
   }, [navigate, saveAuth]);
 
   return (
-    <div className="flex flex-col items-center gap-2">
-      <div ref={buttonRef} />
+    <div className="flex w-full flex-col items-center gap-2">
+      <div ref={buttonRef} className="google-signin-shell" />
       {error && <p className="text-center text-sm text-destructive">{error}</p>}
     </div>
   );

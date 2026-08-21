@@ -6,6 +6,7 @@ import useAuth from "../hooks/useAuth";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import GoogleSignInButton from "../components/GoogleSignInButton";
+import AuthPageShell from "../components/AuthPageShell";
 import Card, { CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "../components/ui/Card";
 
 const Login = () => {
@@ -47,8 +48,8 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card variant="glass" className="w-full max-w-md">
+    <AuthPageShell>
+      <Card variant="glass" className="w-full">
         <CardHeader className="text-center">
           <div className="mx-auto w-12 h-12 rounded-2xl bg-primary flex items-center justify-center text-primary-foreground shadow-glow mb-3">
             <LogIn className="w-6 h-6" />
@@ -103,7 +104,7 @@ const Login = () => {
           </CardFooter>
         </form>
       </Card>
-    </div>
+    </AuthPageShell>
   );
 };
 

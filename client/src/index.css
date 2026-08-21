@@ -105,6 +105,99 @@
   border: 1px solid hsl(var(--foreground) / 0.08);
 }
 
+/* Auth pages use the same collaborative canvas language as the product. */
+.auth-page__grid {
+  opacity: 0.55;
+  background-image: radial-gradient(circle, hsl(var(--muted-foreground) / 0.2) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: linear-gradient(to bottom, transparent, black 18%, black 82%, transparent);
+}
+
+.auth-page__glow {
+  width: 32rem;
+  height: 32rem;
+  border-radius: 9999px;
+  filter: blur(80px);
+  opacity: 0.2;
+}
+
+.auth-page__glow--primary {
+  top: -14rem;
+  left: -10rem;
+  background: hsl(var(--primary));
+}
+
+.auth-page__glow--secondary {
+  right: -12rem;
+  bottom: -15rem;
+  background: hsl(190 75% 45%);
+}
+
+.auth-page__network {
+  opacity: 0.45;
+}
+
+.auth-page__path {
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 8 14;
+}
+
+.auth-page__path--one {
+  stroke: hsl(var(--primary) / 0.36);
+  animation: authPathDrift 18s linear infinite;
+}
+
+.auth-page__path--two {
+  stroke: hsl(190 75% 45% / 0.28);
+  animation: authPathDrift 24s linear infinite reverse;
+}
+
+.auth-page__node {
+  fill: hsl(var(--surface));
+  stroke-width: 3;
+  animation: authNodePulse 3s ease-in-out infinite;
+}
+
+.auth-page__node--one,
+.auth-page__node--two {
+  stroke: hsl(var(--primary) / 0.55);
+}
+
+.auth-page__node--three {
+  stroke: hsl(190 75% 45% / 0.55);
+  animation-delay: 1.2s;
+}
+
+@keyframes authPathDrift {
+  to { stroke-dashoffset: -220; }
+}
+
+@keyframes authNodePulse {
+  0%, 100% { transform: scale(1); opacity: 0.72; transform-box: fill-box; transform-origin: center; }
+  50% { transform: scale(1.45); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-page__path,
+  .auth-page__node {
+    animation: none;
+  }
+}
+
+/* Keep Google's official control responsive without adding a competing outline. */
+.google-signin-shell {
+  width: min(100%, 20rem);
+  overflow: hidden;
+}
+
+.google-signin-shell > div,
+.google-signin-shell iframe {
+  display: block;
+  max-width: 100%;
+  border-radius: 9999px;
+}
+
 /* Excalidraw-style canvas guide dots. The canvas itself remains transparent
    so these dots never become part of the drawable/exportable content. */
 .canvas-dot-grid {
