@@ -32,13 +32,31 @@ export const canvasToYDoc = (doc, canvasData = [], origin = "initial") => {
     doc.transact(() => {
         const elements = elementsMap(doc);
         const order = orderArray(doc);
-        elements.clear();
-        if (order.length) order.delete(0, order.length);
-        canvasData.forEach((element) => {
-            if (!element?.id) return;
-            elements.set(element.id, JSON.stringify(element));
-            order.push([element.id]);
-        });
+        const nextIds = new Set();
+        const nextOrder = [];
+
+        for (const element of canvasData) {
+            if (!element?.id) continue;
+            nextIds.add(element.id);
+            nextOrder.push(element.id);
+            const serialized = JSON.stringify(element);
+            if (elements.get(element.id) !== serialized) {
+                elements.set(element.id, serialized);
+            }
+        }
+
+        for (const id of elements.keys()) {
+            if (!nextIds.has(id)) elements.delete(id);
+        }
+
+        const currentOrder = order.toArray();
+        if (
+            currentOrder.length !== nextOrder.length ||
+            currentOrder.some((id, index) => id !== nextOrder[index])
+        ) {
+            if (order.length) order.delete(0, order.length);
+            order.push(nextOrder);
+        }
     }, origin);
 };
 

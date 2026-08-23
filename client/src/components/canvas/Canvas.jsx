@@ -462,6 +462,7 @@ const Canvas = ({
 }) => {
   const canvasRef = useRef(null);
   const interactionRef = useRef(null);
+  const pendingRemoteElementsRef = useRef(null);
   const elementsRef = useRef(initialElements);
   const processedZoomCommandRef = useRef(null);
   const [elements, setElements] = useState(initialElements);
@@ -520,11 +521,14 @@ const Canvas = ({
 
   useEffect(() => {
     if (!remoteElements) return;
+    // A remote render must not replace the draft or elements being dragged.
+    // Keep the latest state and install it as soon as the interaction finishes.
+    if (interactionRef.current) {
+      pendingRemoteElementsRef.current = remoteElements;
+      return;
+    }
     elementsRef.current = remoteElements;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setElements(remoteElements);
-    setSelectedIds([]);
-    setDraft(null);
   }, [remoteElements]);
 
   useEffect(() => {
@@ -1165,6 +1169,12 @@ const Canvas = ({
     setIsPanning(false);
     setDraft(null);
     interactionRef.current = null;
+    if (pendingRemoteElementsRef.current) {
+      const pendingElements = pendingRemoteElementsRef.current;
+      pendingRemoteElementsRef.current = null;
+      elementsRef.current = pendingElements;
+      setElements(pendingElements);
+    }
     onInteractionActiveChange?.(false);
   };
 

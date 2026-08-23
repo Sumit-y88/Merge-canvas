@@ -57,9 +57,9 @@ const WhiteboardRoom = () => {
   const saveTimerRef = useRef(null);
   const socketRef = useRef(null);
   const roomJoinedRef = useRef(false);
-  const pendingCanvasRef = useRef(null);
   const yDocRef = useRef(null);
   const canvasStateRef = useRef([]);
+  const pendingYjsUpdatesRef = useRef([]);
   const lastKnownWriteAtRef = useRef(0);
   const isDraggingRef = useRef(false);
   const cursorThrottleRef = useRef(null);
@@ -79,8 +79,24 @@ const WhiteboardRoom = () => {
     []
   );
 
+  const applyPendingRemoteUpdates = useCallback(() => {
+    const doc = yDocRef.current;
+    if (!doc || !pendingYjsUpdatesRef.current.length) return;
+
+    const updates = pendingYjsUpdatesRef.current;
+    pendingYjsUpdatesRef.current = [];
+    for (const update of updates) {
+      Y.applyUpdate(doc, base64ToUpdate(update), "remote");
+    }
+    const canvasData = yDocToCanvas(doc);
+    canvasStateRef.current = canvasData;
+    setRemoteCanvasData(canvasData);
+  }, []);
+
   useEffect(() => {
-    if (!room) return undefined;
+    // Wait until the initial REST response has created the local Y.Doc. Keeping
+    // this independent from `room` prevents settings changes from reconnecting.
+    if (loading || !yDocRef.current) return undefined;
     const socket = createRoomSocket();
     socketRef.current = socket;
     socket.on("connect", () => {
@@ -89,11 +105,6 @@ const WhiteboardRoom = () => {
         if (!result?.ok) setError(result?.message || "Unable to join live room");
         if (!result?.ok) return;
         roomJoinedRef.current = true;
-        if (pendingCanvasRef.current) {
-          const pendingCanvas = pendingCanvasRef.current;
-          pendingCanvasRef.current = null;
-          socket.emit("canvas:snapshot", { roomId: id, canvasData: pendingCanvas });
-        }
         if (!yDocRef.current) return;
         socket.emit(
           "yjs:sync-request",
@@ -144,13 +155,12 @@ const WhiteboardRoom = () => {
     });
     socket.on("yjs:update", ({ update }) => {
       if (!yDocRef.current || typeof update !== "string") return;
+      if (isDraggingRef.current) {
+        pendingYjsUpdatesRef.current.push(update);
+        return;
+      }
       Y.applyUpdate(yDocRef.current, base64ToUpdate(update), "remote");
       const canvasData = yDocToCanvas(yDocRef.current);
-      canvasStateRef.current = canvasData;
-      setRemoteCanvasData(canvasData);
-    });
-    socket.on("canvas:snapshot", ({ canvasData }) => {
-      if (!Array.isArray(canvasData)) return;
       canvasStateRef.current = canvasData;
       setRemoteCanvasData(canvasData);
     });
@@ -175,7 +185,7 @@ const WhiteboardRoom = () => {
       yDocRef.current = null;
       setConnectionState("disconnected");
     };
-  }, [id, room]);
+  }, [id, loading]);
 
   const handleCursorMove = useCallback(
     (point) => {
@@ -196,9 +206,15 @@ const WhiteboardRoom = () => {
 
       if (yDocRef.current) {
         setSaveState("saving");
+        const beforeState = Y.encodeStateVector(yDocRef.current);
         canvasToYDoc(yDocRef.current, canvasData);
+        const update = Y.encodeStateAsUpdate(yDocRef.current, beforeState);
+        if (update.byteLength <= 2) {
+          setSaveState("saved");
+          return;
+        }
         if (socketRef.current?.connected && roomJoinedRef.current) {
-          socketRef.current.emit("canvas:snapshot", { roomId: id, canvasData }, (result) => {
+          socketRef.current.emit("yjs:update", { roomId: id, update: updateToBase64(update) }, (result) => {
             if (result?.ok && result.savedAt) {
               lastKnownWriteAtRef.current = Math.max(
                 lastKnownWriteAtRef.current,
@@ -209,13 +225,10 @@ const WhiteboardRoom = () => {
             setSaveState(result?.ok ? "saved" : "error");
           });
         } else {
-          pendingCanvasRef.current = canvasData;
-          saveCanvas(id, canvasData)
-            .then(() => setSaveState("saved"))
-            .catch(() => {
-              setSaveError("Unable to save canvas changes");
-              setSaveState("error");
-            });
+          // The local Y.Doc retains offline edits. On reconnect, sync-request
+          // computes and uploads only the missing CRDT update.
+          setSaveError("");
+          setSaveState("saving");
         }
         return;
       }
@@ -237,6 +250,9 @@ const WhiteboardRoom = () => {
 
   useEffect(() => {
     const fetchRoom = async () => {
+      setLoading(true);
+      setRemoteCanvasData(null);
+      pendingYjsUpdatesRef.current = [];
       try {
         const data = await getRoomById(id);
         setRoom(data);
@@ -274,6 +290,8 @@ const WhiteboardRoom = () => {
     if (!room) return undefined;
     const reconcileCanvas = async () => {
       if (reconciliationInFlightRef.current || isDraggingRef.current) return;
+      if (Date.now() - lastKnownWriteAtRef.current < 5000) return;
+      if (socketRef.current?.connected && roomJoinedRef.current) return;
       reconciliationInFlightRef.current = true;
       const requestedAt = Date.now();
       try {
@@ -291,7 +309,7 @@ const WhiteboardRoom = () => {
         reconciliationInFlightRef.current = false;
       }
     };
-    const timer = setInterval(reconcileCanvas, 2000);
+    const timer = setInterval(reconcileCanvas, 30_000);
     return () => clearInterval(timer);
   }, [id, room]);
 
@@ -569,6 +587,7 @@ const WhiteboardRoom = () => {
           onElementsChange={handleCanvasChange}
           onInteractionActiveChange={(active) => {
             isDraggingRef.current = active;
+            if (!active) applyPendingRemoteUpdates();
           }}
           onCursorMove={handleCursorMove}
           onToolChange={setActiveTool}

@@ -20,7 +20,7 @@ const enqueueYjsUpdate = (roomId, task) => {
     yjsUpdateQueues.set(roomId, current);
     current.finally(() => {
         if (yjsUpdateQueues.get(roomId) === current) yjsUpdateQueues.delete(roomId);
-    });
+    }).catch(() => {});
     return current;
 };
 
@@ -94,7 +94,6 @@ const registerRoomEvents = (socket) => {
             Y.applyUpdate(doc, Buffer.from(update, "base64"), "remote");
             const result = await persistRoomDoc(roomId, socket.data.user._id, doc);
             socket.to(roomId).emit("yjs:update", { update });
-            socket.to(roomId).emit("canvas:snapshot", { canvasData: result.canvasData, updatedBy: socket.data.user._id });
             acknowledge?.({ ok: true, savedAt: result.savedAt });
         }).catch((error) => {
             acknowledge?.({ ok: false, message: error.message });

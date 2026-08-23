@@ -40,6 +40,19 @@ test("replaces an existing Yjs canvas instead of appending to it", () => {
   assert.deepEqual(yDocToCanvas(doc), [{ id: "new", type: "ellipse" }]);
 });
 
+test("does not create an update when the canvas snapshot is unchanged", () => {
+  const elements = [{ id: "stable", type: "rectangle", x: 10, y: 20 }];
+  const doc = new Y.Doc();
+  canvasToYDoc(doc, elements, "test");
+  const stateVector = Y.encodeStateVector(doc);
+
+  canvasToYDoc(doc, elements, "test");
+
+  // An empty Yjs update is two bytes. A clear-and-rebuild implementation
+  // would produce a full delete/reinsert update here.
+  assert.equal(Y.encodeStateAsUpdate(doc, stateVector).byteLength, 2);
+});
+
 test("round-trips binary updates through base64", () => {
   const source = new Y.Doc();
   canvasToYDoc(source, [{ id: "shape", type: "rectangle", x: 4 }], "test");

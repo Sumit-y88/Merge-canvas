@@ -170,7 +170,43 @@ test("broadcasts Yjs updates and persists their canvas state", async () => {
     ownerSocket.close();
 });
 
+test("merges independent concurrent Yjs updates without dropping either element", async () => {
+    const ownerSocket = await connectSocket(owner.accessToken, room._id);
+    const editorSocket = await connectSocket(editor.accessToken, room._id);
+    const ownerDoc = new Y.Doc();
+    const editorDoc = new Y.Doc();
+
+    canvasToYDoc(ownerDoc, [{ id: "owner-shape", type: "rectangle", x: 10, y: 10 }], "local");
+    canvasToYDoc(editorDoc, [{ id: "editor-shape", type: "ellipse", x: 30, y: 30 }], "local");
+
+    const [ownerResult, editorResult] = await Promise.all([
+        emitWithAck(ownerSocket, "yjs:update", {
+            roomId: room._id,
+            update: Buffer.from(Y.encodeStateAsUpdate(ownerDoc)).toString("base64"),
+        }),
+        emitWithAck(editorSocket, "yjs:update", {
+            roomId: room._id,
+            update: Buffer.from(Y.encodeStateAsUpdate(editorDoc)).toString("base64"),
+        }),
+    ]);
+    assert.equal(ownerResult.ok, true);
+    assert.equal(editorResult.ok, true);
+
+    const persisted = await Room.findById(room._id).select("canvasData");
+    assert.deepEqual(
+        persisted.canvasData.map((element) => element.id).sort(),
+        ["editor-shape", "owner-shape"]
+    );
+    ownerSocket.close();
+    editorSocket.close();
+});
+
 test("viewers cannot publish canvas snapshots", async () => {
+    const roleChange = await request(app)
+        .patch(`/api/rooms/${room._id}/collaborators/${viewer.user.id}/role`)
+        .set("Authorization", `Bearer ${owner.accessToken}`)
+        .send({ role: "viewer" });
+    assert.equal(roleChange.status, 200);
     const ownerSocket = await connectSocket(owner.accessToken, room._id);
     const viewerSocket = await connectSocket(viewer.accessToken, room._id);
     const canvasData = [{ id: "blocked", type: "ellipse", x: 5, y: 5, width: 20, height: 20 }];
