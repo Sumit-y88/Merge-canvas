@@ -674,32 +674,35 @@ const Canvas = ({
       const cursorColor = resolveCssColor(cursor.color || "var(--primary)");
       const scale = 1 / zoom;
       context.shadowColor = "rgba(15, 23, 42, 0.24)";
-      context.shadowBlur = 5 * scale;
+      context.shadowBlur = 7 * scale;
       context.fillStyle = cursorColor;
-      context.strokeStyle = "#fff";
-      context.lineWidth = 2 * scale;
-      context.beginPath();
-      context.arc(0, 0, 7 * scale, 0, Math.PI * 2);
-      context.fill();
-      context.stroke();
+      context.strokeStyle = "#0f172a";
+      context.lineJoin = "round";
+
+      // The reference cursor's tip is aligned with the shared pointer location.
+      context.scale(scale, scale);
+      context.translate(-5.5, -3.21);
+      context.lineWidth = 1.75;
+      const pointer = new Path2D(
+        "M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.87a.5.5 0 0 0 .35-.85L6.35 2.85a.5.5 0 0 0-.85.35Z"
+      );
+      context.fill(pointer);
+      context.stroke(pointer);
       context.shadowBlur = 0;
-      context.beginPath();
-      context.arc(0, 0, 2.5 * scale, 0, Math.PI * 2);
-      context.fillStyle = "#fff";
-      context.fill();
-      context.font = `${12 * scale}px sans-serif`;
+
+      context.font = "12px sans-serif";
       const label = cursor.name || "Collaborator";
-      const labelWidth = context.measureText(label).width + 16 * scale;
-      const labelHeight = 22 * scale;
-      const labelX = 13 * scale;
-      const labelY = -labelHeight / 2;
+      const labelWidth = context.measureText(label).width + 16;
+      const labelHeight = 22;
+      const labelX = 15;
+      const labelY = 25;
       context.fillStyle = cursorColor;
       context.beginPath();
-      context.roundRect(labelX, labelY, labelWidth, labelHeight, 8 * scale);
+      context.roundRect(labelX, labelY, labelWidth, labelHeight, 7);
       context.fill();
       context.fillStyle = "#fff";
       context.textBaseline = "middle";
-      context.fillText(label, labelX + 8 * scale, 0);
+      context.fillText(label, labelX + 8, labelY + labelHeight / 2);
       context.restore();
     });
   }, [draft, elements, forceRerender, gridStyle, pan, remoteCursors, selectedIds, zoom]);
