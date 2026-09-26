@@ -2,12 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, CheckCircle2, GitMerge, KeyRound, LogOut, Mail, Save, Sparkles, UserRound } from "lucide-react";
+import { ArrowLeft, CheckCircle2, KeyRound, LogOut, Mail, Save, UserRound } from "lucide-react";
 import useAuth from "../hooks/useAuth";
 import { changePassword, getProfile, updateProfile } from "../api/profileApi";
-import Avatar from "../components/ui/Avatar";
 import Button from "../components/ui/Button";
-import Card, { CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/Card";
 import Input from "../components/ui/Input";
 import ThemeToggle from "../components/ThemeToggle";
 

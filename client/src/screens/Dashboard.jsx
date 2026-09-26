@@ -7,26 +7,17 @@ import {
   Plus,
   LogOut,
   TicketCheck,
-  Users,
-  Clock,
   GitMerge,
   Search,
   Copy,
   Check,
   Compass,
-  LayoutGrid,
-  Share2,
-  FolderGit2,
-  Settings,
-  MoreVertical,
-  Upload,
 } from "lucide-react";
 import useAuth from "../hooks/useAuth";
 import { getRooms, createRoom, joinRoom } from "../api/roomApi";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import Modal from "../components/ui/Modal";
-import Avatar from "../components/ui/Avatar";
 import ThemeToggle from "../components/ThemeToggle";
 
 const TEMPLATE_SUGGESTIONS = [
@@ -75,7 +66,20 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    fetchRooms();
+    let ignore = false;
+    getRooms()
+      .then((data) => {
+        if (!ignore) setRooms(data);
+      })
+      .catch((err) => {
+        if (!ignore) setRoomsError(err.response?.data?.message || "Failed to load studio boards");
+      })
+      .finally(() => {
+        if (!ignore) setRoomsLoading(false);
+      });
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   const handleCreateRoom = async (e) => {

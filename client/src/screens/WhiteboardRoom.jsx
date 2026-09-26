@@ -548,10 +548,29 @@ const WhiteboardRoom = () => {
             <h1 className="font-headline text-sm font-bold text-foreground truncate max-w-[160px] sm:max-w-[240px]">
               {room?.name || "Untitled Board"}
             </h1>
-            <span className="inline-flex items-center gap-1 text-[11px] font-label text-muted-foreground pl-1">
-              <span className={`w-2 h-2 rounded-full ${connectionState === "connected" ? "bg-emerald-600 animate-pulse" : "bg-amber-500"}`} />
+            <span
+              className="inline-flex items-center gap-1 text-[11px] font-label text-muted-foreground pl-1"
+              title={saveError || (saveState === "saving" ? "Saving changes..." : "Synchronized")}
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  connectionState !== "connected"
+                    ? "bg-amber-500"
+                    : saveState === "error"
+                    ? "bg-red-500"
+                    : saveState === "saving"
+                    ? "bg-primary animate-pulse"
+                    : "bg-emerald-600 animate-pulse"
+                }`}
+              />
               <span className="hidden sm:inline">
-                {connectionState === "connected" ? "Live sync" : "Connecting..."}
+                {connectionState !== "connected"
+                  ? "Connecting..."
+                  : saveState === "error"
+                  ? "Sync error"
+                  : saveState === "saving"
+                  ? "Saving..."
+                  : "Live sync"}
               </span>
             </span>
           </div>

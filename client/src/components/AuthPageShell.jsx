@@ -1,7 +1,8 @@
+
 "use client";
 
 import Link from "next/link";
-import { GitMerge, ArrowLeft, ShieldCheck, Zap, MousePointer2 } from "lucide-react";
+import { GitMerge, ArrowLeft, MousePointer2 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 
 const AuthPageShell = ({ children, activeTab = "login" }) => (

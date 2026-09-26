@@ -1,4 +1,4 @@
-import { Brain, GitBranch, Kanban, LayoutTemplate, Network, Layers, Sparkles } from "lucide-react";
+import { Brain, GitBranch, Kanban, LayoutTemplate, Network } from "lucide-react";
 import Modal from "../ui/Modal";
 import Button from "../ui/Button";
 

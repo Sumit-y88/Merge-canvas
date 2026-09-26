@@ -1,30 +1,21 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
   ArrowUpRight,
-  CheckCircle2,
   Code2,
   ExternalLink,
   GitMerge,
   MousePointer2,
   Pencil,
   Radio,
-  ShieldCheck,
-  Sparkles,
-  WifiOff,
   Zap,
   Cpu,
-  Layers,
   StickyNote,
   Compass,
-  FileDown,
-  Lock,
 } from "lucide-react";
 import ThemeToggle from "../components/ThemeToggle";
-import Button from "../components/ui/Button";
 
 const Logo = () => (
   <Link href="/" className="flex items-center gap-2.5 font-bold tracking-tight text-foreground group">
