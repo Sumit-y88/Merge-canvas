@@ -5,14 +5,13 @@ import protect from "../middleware/authMiddleware.js";
 
 const router =  express.Router()
 
-router.use(authRateLimit);
-router.post("/signup", signup);
-router.post("/login", login);
-router.post("/google", googleLogin);
+router.post("/signup", authRateLimit, signup);
+router.post("/login", authRateLimit, login);
+router.post("/google", authRateLimit, googleLogin);
 router.post("/refresh", refresh);
 router.post("/logout", logout);
 router.get("/profile", protect, getProfile);
 router.patch("/profile", protect, updateProfile);
-router.patch("/profile/password", protect, changePassword);
+router.patch("/profile/password", authRateLimit, protect, changePassword);
 
 export default router;

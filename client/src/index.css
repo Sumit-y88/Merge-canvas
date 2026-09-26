@@ -1,75 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Space+Grotesk:wght@300..700&family=Plus+Jakarta+Sans:wght@400..800&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* Monochrome system: black, white, and neutral gray throughout the UI. */
-    --background: 0 0% 97%;
-    --foreground: 0 0% 8%;
+    /* Stitch Tactile Workshop: Warm Archival Paper & Terracotta Stamp */
+    --background: 43 38% 96%; /* #FAF7F0 */
+    --foreground: 36 10% 10%; /* #1C1A17 */
 
-    --surface: 0 0% 100%;
-    --card: var(--surface);
+    --surface: 37 100% 97%; /* #FFF8F0 */
+    --card: 0 0% 100%;
     --card-foreground: var(--foreground);
 
     --popover: var(--surface);
     --popover-foreground: var(--foreground);
 
-    --primary: 0 0% 10%;
-    --primary-hover: 0 0% 22%;
+    /* Terracotta Primary Stamp */
+    --primary: 13 69% 53%; /* #D85A38 */
+    --primary-hover: 13 70% 44%; /* #BF4321 */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 92%;
-    --secondary-foreground: var(--foreground);
+    --secondary: 35 24% 92%; /* #F4EFE6 */
+    --secondary-foreground: 36 10% 10%;
 
-    --muted: 0 0% 92%;
-    --muted-foreground: 0 0% 42%;
+    --muted: 36 12% 90%;
+    --muted-foreground: 36 6% 45%; /* #78746D */
 
-    --accent: var(--secondary);
-    --accent-foreground: var(--foreground);
+    --accent: 14 78% 95%; /* #FBECE8 */
+    --accent-foreground: 13 69% 45%;
 
-    --success: 0 0% 28%;
-    --warning: 0 0% 42%;
-    --destructive: 0 0% 20%;
+    --success: 142 55% 42%;
+    --warning: 45 93% 47%;
+    --destructive: 0 74% 42%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 85%;
-    --input: var(--border);
+    --border: 36 10% 10%; /* Crisp carbon #1C1A17 */
+    --input: 36 10% 10%;
     --ring: var(--primary);
 
-    --radius: 0.875rem;
+    --radius: 0.25rem;
   }
 
   .dark {
-    --background: 0 0% 7%;
-    --foreground: 0 0% 96%;
+    /* Dark Drafting Slate Atelier */
+    --background: 30 9% 9%; /* #181715 */
+    --foreground: 38 27% 91%; /* #F4EFE6 */
 
-    --surface: 0 0% 11%;
-    --card: var(--surface);
+    --surface: 30 7% 12%; /* #22201D */
+    --card: 30 7% 14%;
     --card-foreground: var(--foreground);
 
     --popover: var(--surface);
     --popover-foreground: var(--foreground);
 
-    --primary: 0 0% 96%;
-    --primary-hover: 0 0% 84%;
-    --primary-foreground: 0 0% 8%;
+    --primary: 13 75% 58%; /* #E06746 */
+    --primary-hover: 13 75% 50%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 17%;
-    --secondary-foreground: var(--foreground);
+    --secondary: 30 7% 18%;
+    --secondary-foreground: 38 27% 91%;
 
-    --muted: var(--secondary);
-    --muted-foreground: 0 0% 68%;
+    --muted: 30 7% 18%;
+    --muted-foreground: 36 8% 62%;
 
-    --accent: var(--secondary);
-    --accent-foreground: var(--foreground);
+    --accent: 14 35% 20%;
+    --accent-foreground: 13 75% 75%;
 
-    --success: 0 0% 82%;
-    --warning: 0 0% 70%;
-    --destructive: 0 0% 88%;
-    --destructive-foreground: 0 0% 8%;
+    --success: 142 55% 52%;
+    --warning: 45 93% 55%;
+    --destructive: 0 74% 55%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 100% / 0.14;
+    --border: 36 8% 30%;
     --input: var(--border);
     --ring: var(--primary);
   }
@@ -80,218 +84,99 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-sans antialiased selection:bg-primary/20 selection:text-primary min-h-screen transition-colors duration-200;
+    @apply bg-background text-foreground font-body antialiased selection:bg-primary/20 selection:text-primary min-h-screen transition-colors duration-200;
   }
   img, svg, video, canvas {
     max-width: 100%;
   }
 }
 
-/* Keep marketing surfaces usable between the common breakpoint sizes. */
-@media (max-width: 640px) {
-  [data-hero] {
-    padding-top: 3rem;
-    padding-bottom: 4.5rem;
-  }
-
-  [data-hero] h1 {
-    font-size: clamp(2.75rem, 13vw, 4rem);
-    line-height: 0.98;
-  }
-
-  [data-hero-canvas] {
-    margin-top: 3.5rem;
-  }
-
-  [data-hero-canvas] > div:last-child {
-    font-size: 0.625rem;
-  }
+/* Tactile Dot Matrix Grid Background */
+.bg-dot-matrix {
+  background-color: hsl(var(--background));
+  background-image: radial-gradient(hsl(var(--foreground) / 0.18) 1.2px, transparent 1.2px);
+  background-size: 24px 24px;
 }
 
-/* Custom Glassmorphism Utilities */
-.glass-card {
-  background: hsl(var(--surface) / 0.7);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid hsl(var(--foreground) / 0.08);
+.dark .bg-dot-matrix {
+  background-color: hsl(var(--background));
+  background-image: radial-gradient(hsl(var(--foreground) / 0.15) 1.2px, transparent 1.2px);
+  background-size: 24px 24px;
 }
 
-.dark .glass-card {
-  background: hsl(var(--surface) / 0.7);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+/* Washi Adhesive Tape Accent */
+.washi-tape {
+  background-color: rgba(239, 234, 216, 0.88);
+  box-shadow: 0 1px 2px rgba(28, 26, 23, 0.12);
+  border-left: 2px dashed rgba(28, 26, 23, 0.25);
+  border-right: 2px dashed rgba(28, 26, 23, 0.25);
 }
 
-.glass-panel {
-  background: hsl(var(--surface) / 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid hsl(var(--foreground) / 0.08);
+.dark .washi-tape {
+  background-color: rgba(60, 56, 48, 0.88);
+  border-left: 2px dashed rgba(255, 255, 255, 0.2);
+  border-right: 2px dashed rgba(255, 255, 255, 0.2);
 }
 
-/* Auth pages use the same collaborative canvas language as the product. */
-.auth-page__grid {
-  opacity: 0.55;
-  background-image: radial-gradient(circle, hsl(var(--muted-foreground) / 0.2) 1px, transparent 1px);
-  background-size: 28px 28px;
-  mask-image: linear-gradient(to bottom, transparent, black 18%, black 82%, transparent);
+/* Mechanical Physical Button Press */
+.stamp-press {
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+.stamp-press:active {
+  transform: translate(2px, 2px);
+  box-shadow: 0px 0px 0px #1C1A17 !important;
 }
 
-.auth-page__glow {
-  width: 32rem;
-  height: 32rem;
-  border-radius: 9999px;
-  filter: blur(80px);
-  opacity: 0.2;
+.stamp-press-sm {
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+.stamp-press-sm:active {
+  transform: translate(1px, 1px);
+  box-shadow: 0px 0px 0px #1C1A17 !important;
 }
 
-.auth-page__glow--primary {
-  top: -14rem;
-  left: -10rem;
-  background: hsl(var(--primary));
+/* Hand drawn marker loop underline */
+.ink-highlight-loop {
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+}
+.ink-highlight-loop::after {
+  content: '';
+  position: absolute;
+  left: -5%;
+  bottom: -4px;
+  width: 110%;
+  height: 10px;
+  border: 2.5px solid #D85A38;
+  border-radius: 255px 15px 225px 15px/15px 225px 15px 255px;
+  transform: rotate(-1.2deg);
+  pointer-events: none;
 }
 
-.auth-page__glow--secondary {
-  right: -12rem;
-  bottom: -15rem;
-  background: hsl(var(--accent));
-}
-
-.auth-page__network {
-  opacity: 0.45;
-}
-
-.auth-page__path {
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-dasharray: 8 14;
-}
-
-.auth-page__path--one {
-  stroke: hsl(var(--primary) / 0.36);
-  animation: authPathDrift 18s linear infinite;
-}
-
-.auth-page__path--two {
-  stroke: hsl(var(--accent) / 0.28);
-  animation: authPathDrift 24s linear infinite reverse;
-}
-
-.auth-page__node {
-  fill: hsl(var(--surface));
-  stroke-width: 3;
-  animation: authNodePulse 3s ease-in-out infinite;
-}
-
-.auth-page__node--one,
-.auth-page__node--two {
-  stroke: hsl(var(--primary) / 0.55);
-}
-
-.auth-page__node--three {
-  stroke: hsl(var(--accent) / 0.55);
-  animation-delay: 1.2s;
-}
-
-@keyframes authPathDrift {
-  to { stroke-dashoffset: -220; }
-}
-
-@keyframes authNodePulse {
-  0%, 100% { transform: scale(1); opacity: 0.72; transform-box: fill-box; transform-origin: center; }
-  50% { transform: scale(1.45); opacity: 1; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .auth-page__path,
-  .auth-page__node {
-    animation: none;
-  }
-}
-
-/* Keep Google's official control responsive without adding a competing outline. */
-.google-signin-shell {
-  width: 100%;
-  max-width: 20rem;
-  overflow: hidden;
-}
-
-.google-signin-shell > div,
-.google-signin-shell iframe {
-  display: block;
-  width: 100% !important;
-  max-width: 100% !important;
-  border-radius: 9999px;
-}
-
-/* Excalidraw-style canvas guide dots. The canvas itself remains transparent
-   so these dots never become part of the drawable/exportable content. */
+/* Canvas guide dot grid */
 .canvas-dot-grid {
   background-color: hsl(var(--background));
   background-image: radial-gradient(
     circle,
-    hsl(var(--muted-foreground) / 0.28) 1px,
-    transparent 1px
+    hsl(var(--muted-foreground) / 0.3) 1.2px,
+    transparent 1.2px
   );
   background-size: 24px 24px;
 }
 
-.dark .glass-panel {
-  background: hsl(var(--surface) / 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
-
 ::-webkit-scrollbar-track {
   background: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
-  @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/30 transition-colors;
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 9999px;
 }
-
-/* ─── Landing page SVG animations ─── */
-.landing-draw-path {
-  animation: landingDraw 2.5s ease-out forwards;
-}
-
-@keyframes landingDraw {
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-.landing-merge-dot {
-  animation: landingPulse 1.8s ease-in-out infinite;
-}
-
-@keyframes landingPulse {
-  0%, 100% {
-    opacity: 1;
-    r: 4;
-  }
-  50% {
-    opacity: 0.5;
-    r: 6;
-  }
-}
-
-.landing-merge-line {
-  animation: landingGrow 1.2s ease-out forwards;
-  stroke-dasharray: 30;
-  stroke-dashoffset: 30;
-}
-
-@keyframes landingGrow {
-  to {
-    stroke-dashoffset: 0;
-  }
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
 }

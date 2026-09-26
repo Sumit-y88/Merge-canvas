@@ -1,4 +1,5 @@
-/* eslint-disable react-refresh/only-export-components */
+"use client";
+
 import { createContext, useLayoutEffect, useState } from "react";
 
 export const ThemeContext = createContext({

@@ -1,5 +1,7 @@
+"use client";
+
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Share2, Copy, Check, Settings, Trash2, UserMinus, LogOut, RefreshCw } from "lucide-react";
 import { getRoomById, saveCanvas, updateCollaboratorRole, updateRoomSettings, regenerateInviteCode, removeCollaborator, leaveRoom, deleteRoom } from "../api/roomApi";
 import { createRoomSocket } from "../api/socket";
@@ -11,7 +13,7 @@ import Modal from "../components/ui/Modal";
 import Input from "../components/ui/Input";
 import ThemeToggle from "../components/ThemeToggle";
 import Canvas from "../components/canvas/Canvas";
-import Toolbar from "../components/canvas/Toolbar";
+import { SideToolbar, BottomToolbar } from "../components/canvas/Toolbar";
 import TemplatesModal from "../components/canvas/TemplatesModal";
 import ShortcutsModal from "../components/canvas/ShortcutsModal";
 import useAuth from "../hooks/useAuth";
@@ -20,7 +22,7 @@ import { base64ToUpdate, canvasToYDoc, updateToBase64, yDocToCanvas } from "../l
 
 const WhiteboardRoom = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
+  const router = useRouter();
   const { user } = useAuth();
   const [room, setRoom] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -67,14 +69,17 @@ const WhiteboardRoom = () => {
 
   const [remoteCanvasData, setRemoteCanvasData] = useState(null);
   const [remoteCursors, setRemoteCursors] = useState({});
+  const [remoteDrafts, setRemoteDrafts] = useState({});
   const [connectionState, setConnectionState] = useState("connecting");
   const refreshingSocketRef = useRef(false);
   const reconciliationInFlightRef = useRef(false);
+  const draftThrottleRef = useRef(null);
 
   useEffect(
     () => () => {
       clearTimeout(saveTimerRef.current);
       clearTimeout(cursorThrottleRef.current);
+      clearTimeout(draftThrottleRef.current);
     },
     []
   );
@@ -125,7 +130,7 @@ const WhiteboardRoom = () => {
               yDocRef.current,
               base64ToUpdate(syncResult.stateVector)
             );
-            if (!offlineChanges.byteLength) return;
+            if (offlineChanges.byteLength <= 2) return;
             socket.emit("yjs:update", { roomId: id, update: updateToBase64(offlineChanges) }, (updateResult) => {
               setSaveError(updateResult?.ok ? "" : updateResult?.message || "Unable to upload offline changes");
               setSaveState(updateResult?.ok ? "saved" : "error");
@@ -155,11 +160,11 @@ const WhiteboardRoom = () => {
     });
     socket.on("yjs:update", ({ update }) => {
       if (!yDocRef.current || typeof update !== "string") return;
-      if (isDraggingRef.current) {
-        pendingYjsUpdatesRef.current.push(update);
-        return;
+      try {
+        Y.applyUpdate(yDocRef.current, base64ToUpdate(update), "remote");
+      } catch {
+        // Skip corrupted packet
       }
-      Y.applyUpdate(yDocRef.current, base64ToUpdate(update), "remote");
       const canvasData = yDocToCanvas(yDocRef.current);
       canvasStateRef.current = canvasData;
       setRemoteCanvasData(canvasData);
@@ -168,8 +173,25 @@ const WhiteboardRoom = () => {
     socket.on("cursor:update", ({ userId, point, name, color }) => {
       setRemoteCursors((current) => ({ ...current, [userId]: { point, name, color } }));
     });
+    socket.on("draft:update", ({ userId, name, color, draft }) => {
+      setRemoteDrafts((current) => {
+        if (!draft) {
+          if (!current[userId]) return current;
+          const next = { ...current };
+          delete next[userId];
+          return next;
+        }
+        return { ...current, [userId]: { draft, name, color } };
+      });
+    });
     socket.on("presence:left", ({ userId }) => {
       setRemoteCursors((current) => {
+        const next = { ...current };
+        delete next[userId];
+        return next;
+      });
+      setRemoteDrafts((current) => {
+        if (!current[userId]) return current;
         const next = { ...current };
         delete next[userId];
         return next;
@@ -198,16 +220,35 @@ const WhiteboardRoom = () => {
     [id]
   );
 
+  const handleDraftChange = useCallback(
+    (draft) => {
+      if (!socketRef.current?.connected || !roomJoinedRef.current) return;
+      if (!draft) {
+        clearTimeout(draftThrottleRef.current);
+        draftThrottleRef.current = null;
+        socketRef.current.emit("draft:stream", { roomId: id, draft: null });
+        return;
+      }
+      if (draftThrottleRef.current) return;
+      socketRef.current.emit("draft:stream", { roomId: id, draft });
+      draftThrottleRef.current = setTimeout(() => {
+        draftThrottleRef.current = null;
+      }, 25);
+    },
+    [id]
+  );
+
   const handleCanvasChange = useCallback(
     (canvasData) => {
       if (!room) return;
+      const prevCanvas = canvasStateRef.current;
       canvasStateRef.current = canvasData;
       lastKnownWriteAtRef.current = Date.now();
 
       if (yDocRef.current) {
         setSaveState("saving");
         const beforeState = Y.encodeStateVector(yDocRef.current);
-        canvasToYDoc(yDocRef.current, canvasData);
+        canvasToYDoc(yDocRef.current, canvasData, "local", prevCanvas);
         const update = Y.encodeStateAsUpdate(yDocRef.current, beforeState);
         if (update.byteLength <= 2) {
           setSaveState("saved");
@@ -378,7 +419,7 @@ const WhiteboardRoom = () => {
     if (!window.confirm("Leave this room?")) return;
     try {
       await leaveRoom(id);
-      navigate("/dashboard");
+      router.push("/dashboard");
     } catch (err) {
       setError(err.response?.data?.message || "Unable to leave room");
     }
@@ -388,7 +429,7 @@ const WhiteboardRoom = () => {
     if (!window.confirm("Delete this room permanently?")) return;
     try {
       await deleteRoom(id);
-      navigate("/dashboard");
+      router.push("/dashboard");
     } catch (err) {
       setError(err.response?.data?.message || "Unable to delete room");
     }
@@ -465,7 +506,7 @@ const WhiteboardRoom = () => {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
         <p className="text-destructive font-medium">{error}</p>
-        <Button variant="outline" onClick={() => navigate("/dashboard")}>
+        <Button variant="outline" onClick={() => router.push("/dashboard")}>
           Back to Dashboard
         </Button>
       </div>
@@ -483,60 +524,59 @@ const WhiteboardRoom = () => {
         onChange={handleImageFileChange}
       />
 
-      {/* Top Navigation Bar */}
-      <header className="min-h-14 border-b border-border bg-background/80 backdrop-blur-md px-3 sm:px-4 py-1.5 flex items-center justify-between gap-3 z-10 shrink-0">
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/dashboard")}
-            title="Back to Dashboard"
-            className="h-9 w-9"
+      {/* Top Navigation Bar: Stitch Tactile Workshop Studio Header */}
+      <header className="h-14 border-b border-foreground bg-surface px-4 flex items-center justify-between gap-3 z-40 relative shadow-stamp shrink-0">
+        <div className="flex items-center gap-3 min-w-0">
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="flex items-center gap-2 pr-3 border-r border-foreground/20 hover:opacity-85 transition-opacity shrink-0"
+            title="Return to Dashboard"
           >
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-          <div className="min-w-0">
-            <h1 className="font-semibold text-sm text-foreground flex items-center gap-2 min-w-0">
-              <span className="truncate">{room?.name || "Untitled Canvas"}</span>
-              <Badge variant={canEdit ? "default" : "secondary"} className="text-[10px]">
-                {canEdit ? "Editor" : "Viewer"}
-              </Badge>
+            <div className="w-8 h-8 bg-primary border-[1.5px] border-foreground flex items-center justify-center shadow-stamp-xs">
+              <ArrowLeft className="text-white w-4 h-4" />
+            </div>
+            <span className="font-headline text-base font-bold tracking-tight text-foreground hidden sm:inline">
+              MergeCanvas
+            </span>
+          </button>
+
+          <div className="min-w-0 flex items-center gap-2">
+            <span className="font-label text-[11px] text-muted-foreground bg-secondary px-2 py-0.5 border border-foreground/30 hidden md:inline">
+              Sheet #{id ? String(id).slice(-4) : "418"}
+            </span>
+            <span className="text-muted-foreground text-xs hidden md:inline">/</span>
+            <h1 className="font-headline text-sm font-bold text-foreground truncate max-w-[160px] sm:max-w-[240px]">
+              {room?.name || "Untitled Board"}
             </h1>
-            <p className="text-[11px] text-muted-foreground flex items-center gap-2 truncate">
-              <span
-                className={`inline-block w-2 h-2 rounded-full ${
-                  connectionState === "connected" ? "bg-success" : "bg-warning"
-                }`}
-              />
-              {connectionState === "connected" ? "Live session" : "Connecting..."}
-              <span>•</span>
-              <span className={saveState === "error" ? "text-destructive" : ""}>
-                {saveState === "saving"
-                  ? "Saving..."
-                  : saveState === "error"
-                  ? saveError || "Save error"
-                  : "Saved to cloud"}
+            <span className="inline-flex items-center gap-1 text-[11px] font-label text-muted-foreground pl-1">
+              <span className={`w-2 h-2 rounded-full ${connectionState === "connected" ? "bg-emerald-600 animate-pulse" : "bg-amber-500"}`} />
+              <span className="hidden sm:inline">
+                {connectionState === "connected" ? "Live sync" : "Connecting..."}
               </span>
-            </p>
+            </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {/* Room collaborators; the status dot shows who is currently connected. */}
-          <div className="flex items-center -space-x-2 mr-1 sm:mr-2">
+        <div className="flex items-center gap-2.5 shrink-0">
+          {/* Live Collaborators Presence Stack */}
+          <div className="flex items-center -space-x-1.5 mr-1">
             {collaborators.slice(0, 4).map((collaborator, index) => {
               const collaboratorUser = collaborator.user;
               const collaboratorId = typeof collaboratorUser === "object" ? collaboratorUser?._id : collaboratorUser;
               const name = typeof collaboratorUser === "object" ? collaboratorUser?.name : "Collaborator";
               const isOnline = collaboratorId?.toString() === user?.id?.toString() || Boolean(remoteCursors[collaboratorId]);
               return (
-                <div key={collaboratorId?.toString() || index} title={`${name}${isOnline ? " (online)" : " (offline)"}`} className="ring-2 ring-background rounded-full">
-                  <Avatar name={name} size="sm" status={isOnline ? "online" : "offline"} />
+                <div
+                  key={collaboratorId?.toString() || index}
+                  title={`${name}${isOnline ? " (online)" : " (offline)"}`}
+                  className="w-7 h-7 rounded-full border border-foreground bg-surface-container flex items-center justify-center text-[10px] font-label font-bold text-foreground shadow-stamp-xs transition-transform hover:scale-110"
+                >
+                  {name.slice(0, 2).toUpperCase()}
                 </div>
               );
             })}
             {collaborators.length > 4 && (
-              <span className="relative z-10 flex items-center justify-center w-7 h-7 rounded-full bg-secondary text-[10px] font-semibold text-muted-foreground ring-2 ring-background">
+              <span className="w-7 h-7 rounded-full border border-foreground bg-secondary flex items-center justify-center text-[10px] font-label font-bold text-muted-foreground shadow-stamp-xs">
                 +{collaborators.length - 4}
               </span>
             )}
@@ -546,21 +586,24 @@ const WhiteboardRoom = () => {
             variant="outline"
             size="sm"
             onClick={() => setShowShareModal(true)}
-            title="Share room"
+            title="Share board"
             leftIcon={<Share2 className="w-3.5 h-3.5" />}
-            className="h-9 px-2.5 sm:px-3 gap-1.5 text-xs font-medium shrink-0"
+            className="h-8 px-3 gap-1.5 text-xs font-label font-bold"
           >
-            <span className="hidden sm:inline">Share room</span>
+            <span>Share</span>
           </Button>
+
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
             onClick={openManageModal}
-            title={isOwner ? "Manage room" : "Room options"}
-            className="h-9 w-9"
+            title={isOwner ? "Manage board" : "Board options"}
+            className="h-8 w-8 text-foreground"
           >
-            <Settings className="w-3.5 h-3.5" />
+            <Settings className="w-4 h-4" />
           </Button>
+
+          <div className="h-4 w-px bg-foreground/20 shrink-0" />
           <ThemeToggle />
         </div>
       </header>
@@ -579,12 +622,14 @@ const WhiteboardRoom = () => {
           initialElements={room?.canvasData || []}
           remoteElements={remoteCanvasData}
           remoteCursors={remoteCursors}
+          remoteDrafts={remoteDrafts}
           readOnly={!canEdit}
           clearRequest={canvasVersion}
           exportRequest={exportRequest}
           zoomCommand={zoomCommand}
           onZoomChange={setZoom}
           onElementsChange={handleCanvasChange}
+          onDraftChange={handleDraftChange}
           onInteractionActiveChange={(active) => {
             isDraggingRef.current = active;
             if (!active) applyPendingRemoteUpdates();
@@ -595,11 +640,26 @@ const WhiteboardRoom = () => {
           onOpenShortcuts={() => setShowShortcutsModal(true)}
         />
 
-        {/* Floating Bottom Toolbar */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20">
-          <Toolbar
+        {/* Floating Left Side Tool Palette */}
+        <div className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 z-20">
+          <SideToolbar
             tool={activeTool}
             setTool={setActiveTool}
+            onImageUpload={() => imageInputRef.current?.click()}
+            onOpenTemplates={() => setShowTemplatesModal(true)}
+            history={historyControls}
+            onClear={() => {
+              handleCanvasChange([]);
+              setCanvasVersion((version) => version + 1);
+            }}
+            disabled={!canEdit}
+          />
+        </div>
+
+        {/* Floating Bottom Properties & Controls Bar */}
+        <div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-20">
+          <BottomToolbar
+            tool={activeTool}
             color={strokeColor}
             setColor={setStrokeColor}
             fillColor={fillColor}
@@ -614,21 +674,14 @@ const WhiteboardRoom = () => {
             setGridStyle={setGridStyle}
             snapToGrid={snapToGrid}
             setSnapToGrid={setSnapToGrid}
-            history={historyControls}
-            onClear={() => {
-              handleCanvasChange([]);
-              setCanvasVersion((version) => version + 1);
-            }}
-            disabled={!canEdit}
-            onExport={() => setExportRequest((request) => request + 1)}
-            onImageUpload={() => imageInputRef.current?.click()}
-            onOpenTemplates={() => setShowTemplatesModal(true)}
-            onOpenShortcuts={() => setShowShortcutsModal(true)}
             zoom={zoom}
             onZoomIn={() => setZoomCommand({ type: "in", id: Date.now() })}
             onZoomOut={() => setZoomCommand({ type: "out", id: Date.now() })}
             onZoomReset={() => setZoomCommand({ type: "reset", id: Date.now() })}
             onZoomFit={() => setZoomCommand({ type: "fit", id: Date.now() })}
+            onExport={() => setExportRequest((request) => request + 1)}
+            onOpenShortcuts={() => setShowShortcutsModal(true)}
+            disabled={!canEdit}
           />
         </div>
       </div>
@@ -637,8 +690,8 @@ const WhiteboardRoom = () => {
       <Modal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
-        title="Share this Room"
-        description="Send the invite code to collaborators so they can join."
+        title="Share Studio Board"
+        description="Invite fellow draftsmen, editors and observers to collaborate."
       >
         <div className="space-y-4">
           <div>
@@ -657,7 +710,7 @@ const WhiteboardRoom = () => {
                 onClick={handleCopyCode}
                 className="shrink-0"
               >
-                {copied ? (
+{copied ? (
                   <Check className="w-4 h-4 text-success" />
                 ) : (
                   <Copy className="w-4 h-4" />

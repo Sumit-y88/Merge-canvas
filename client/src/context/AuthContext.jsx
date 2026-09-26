@@ -1,4 +1,5 @@
-/* eslint-disable react-refresh/only-export-components */
+"use client";
+
 import { createContext, useState, useCallback, useEffect } from "react";
 import api, { setAuthToken } from "../api/api";
 

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { canEditRoom } from "../src/services/roomService.js";
+import { canEditRoom } from "../src/services/RoomService.js";
 
 test("owners and editors can edit rooms", () => {
     assert.equal(canEditRoom("owner"), true);

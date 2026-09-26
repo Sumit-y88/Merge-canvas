@@ -12,6 +12,7 @@ import {
     deleteRoom as deleteRoomService,
 } from "../services/RoomService.js";
 import { validateCanvasData } from "../utils/payloadValidation.js";
+import { kickAllUsersFromRoom, kickUserFromRoom } from "../realtime/socketServer.js";
 
 export const createRoom = async (req, res) => {
     try {
@@ -104,6 +105,7 @@ export const regenerateInvite = async (req, res) => {
 export const removeRoomCollaborator = async (req, res) => {
     try {
         const room = await removeCollaborator(req.params.id, req.user._id, req.params.userId);
+        if (req.app.locals.io) await kickUserFromRoom(req.app.locals.io, req.params.id, req.params.userId);
         res.status(200).json(room);
     } catch (error) {
         res.status(error.message.includes("owner") ? 403 : 400).json({ message: error.message });
@@ -113,6 +115,7 @@ export const removeRoomCollaborator = async (req, res) => {
 export const leave = async (req, res) => {
     try {
         await leaveRoom(req.params.id, req.user._id);
+        if (req.app.locals.io) await kickUserFromRoom(req.app.locals.io, req.params.id, req.user._id);
         res.status(204).send();
     } catch (error) {
         res.status(error.message.includes("owner") ? 403 : 400).json({ message: error.message });
@@ -122,6 +125,7 @@ export const leave = async (req, res) => {
 export const deleteRoom = async (req, res) => {
     try {
         await deleteRoomService(req.params.id, req.user._id);
+        if (req.app.locals.io) await kickAllUsersFromRoom(req.app.locals.io, req.params.id);
         res.status(204).send();
     } catch (error) {
         res.status(error.message.includes("owner") ? 403 : 400).json({ message: error.message });

@@ -77,8 +77,7 @@ Under the hood, canvas state is modeled as a **Yjs CRDT document**, synced over 
 ## Tech Stack
 
 **Client**
-- [React 19](https://react.dev/) + [Vite](https://vitejs.dev/)
-- [React Router](https://reactrouter.com/) for client-side routing
+- [Next.js](https://nextjs.org/) App Router + [React 19](https://react.dev/)
 - [Tailwind CSS](https://tailwindcss.com/) for styling
 - [GSAP](https://gsap.com/) for animation
 - [Yjs](https://docs.yjs.dev/) client-side CRDT document
@@ -105,7 +104,7 @@ Under the hood, canvas state is modeled as a **Yjs CRDT document**, synced over 
 
 ```mermaid
 flowchart LR
-    U[Collaborators] --> C[React + Vite client]
+    U[Collaborators] --> C[Next.js client]
 
     subgraph Client[Browser client]
         C --> UI[Canvas, rooms, and authentication UI]
@@ -160,7 +159,8 @@ flowchart LR
 
 ```
 Merge-canvas/
-├── client/                      # React + Vite frontend
+├── client/                      # Next.js frontend
+│   ├── app/                     # App Router routes and shared providers
 │   ├── src/
 │   │   ├── api/                 # Axios REST clients + Socket.IO client setup
 │   │   ├── components/
@@ -169,7 +169,7 @@ Merge-canvas/
 │   │   ├── context/             # Auth & Theme React contexts
 │   │   ├── hooks/                # useAuth, useTheme, animation hooks
 │   │   ├── lib/                  # utils + Yjs <-> canvas bridge
-│   │   └── pages/                # Landing, Login, Signup, Dashboard, Profile, Whiteboard
+│   │   └── screens/              # Client-rendered route screens
 │   ├── tests/
 │   ├── Dockerfile
 │   └── ops/                     # nginx config for the client image
@@ -217,12 +217,11 @@ cp client/.env.example client/.env
 npm install --prefix server
 npm install --prefix client
 
-# 4. Run the API and client in separate terminals
-npm run dev --prefix server     # http://localhost:5000
-npm run dev --prefix client     # http://localhost:5173
+# 4. Start the full project (Next.js + Express/Socket.IO)
+npm run dev
 ```
 
-Once both are running, open **http://localhost:5173** in your browser.
+Open **http://localhost:3000** in your browser.
 
 ### Environment Variables
 
@@ -232,7 +231,7 @@ Once both are running, open **http://localhost:5173** in your browser.
 |---|---|---|
 | `MONGODB_URI` | MongoDB connection string | `mongodb://localhost:27017/mergeCanvas` |
 | `PORT` | API server port | `5000` |
-| `CLIENT_URL` | Comma-separated list of allowed CORS origins (the deployed client origin is always included) | `http://localhost:5173` |
+| `CLIENT_URL` | Comma-separated list of allowed CORS origins (the deployed client origin is always included) | `http://localhost:3000` |
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID used to verify Google Sign-In tokens | `your-client-id.apps.googleusercontent.com` |
 | `JWT_SECRET` | Secret used to sign JWTs — **must be a long, random value in production** | `replace-with-a-long-random-secret` |
 | `ACCESS_TOKEN_EXPIRES_IN` | Access token lifetime | `15m` |
@@ -251,8 +250,8 @@ Once both are running, open **http://localhost:5173** in your browser.
 
 | Variable | Description | Example |
 |---|---|---|
-| `VITE_API_URL` | Base URL of the REST API | `http://localhost:5000/api` |
-| `VITE_GOOGLE_CLIENT_ID` | Google OAuth client ID (must match the server's) | `your-client-id.apps.googleusercontent.com` |
+| `NEXT_PUBLIC_API_URL` | Base URL of the REST API | `http://localhost:5000/api` |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Google OAuth client ID (must match the server's) | `your-client-id.apps.googleusercontent.com` |
 
 ## Available Scripts
 
@@ -260,9 +259,9 @@ Once both are running, open **http://localhost:5173** in your browser.
 
 | Script | Description |
 |---|---|
-| `npm run dev` | Start the Vite dev server |
-| `npm run build` | Production build to `client/dist` |
-| `npm run preview` | Preview the production build locally |
+| `npm run dev` | Start the Next.js development server |
+| `npm run build` | Create the Next.js production build |
+| `npm start` | Serve the Next.js production build |
 | `npm run lint` | Run ESLint |
 | `npm test` | Run client unit tests |
 
@@ -284,7 +283,7 @@ npm test --prefix server
 
 ## API Overview
 
-Base URL: `VITE_API_URL` (e.g. `https://merge-canvas.onrender.com/api`)
+Base URL: `NEXT_PUBLIC_API_URL` (e.g. `https://merge-canvas.onrender.com/api`)
 
 **Health**
 
@@ -341,7 +340,7 @@ Only users with the `owner` or `editor` role may emit `yjs:update` / `canvas:sna
 
 ### Docker (self-hosted)
 
-The repository ships a full production stack: the API, the client (built and served via Nginx), MongoDB, and Redis.
+The repository ships a full production stack: Next.js, the API/Socket.IO server, a TLS Nginx proxy, MongoDB, and Redis.
 
 ```bash
 # 1. Configure production environment
@@ -353,6 +352,7 @@ cp server/.env.example server/.env.production
 
 # 3. Set your domain and launch
 export APP_DOMAIN=your-domain.com
+export GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 docker compose -f docker-compose.production.yml up -d --build
 ```
 
@@ -364,7 +364,7 @@ docker compose -f docker-compose.production.yml up -d --build
 
 This project's live deployment uses a split-hosting model:
 
-- **Client → [Vercel](https://vercel.com/)**: the `client/` app is deployed as a static Vite build, with `VITE_API_URL` pointed at the Render API and `VITE_GOOGLE_CLIENT_ID` configured for the production OAuth client.
+- **Client → [Vercel](https://vercel.com/)**: deploy the `client/` directory as a Next.js application, with `NEXT_PUBLIC_API_URL` pointed at the Render API and `NEXT_PUBLIC_GOOGLE_CLIENT_ID` configured for the production OAuth client.
 - **Server → [Render](https://render.com/)**: the `server/` app is deployed as a Node web service (`npm start`), with `CLIENT_URL` set to `https://merge-canvas.vercel.app`, plus `MONGODB_URI`, `JWT_SECRET`, `GOOGLE_CLIENT_ID`, and optionally `REDIS_URL` configured as environment variables. Render's health checks can point at `GET /healthz`.
 
 ## Production Hardening

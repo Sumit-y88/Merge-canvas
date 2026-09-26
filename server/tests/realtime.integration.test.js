@@ -69,6 +69,7 @@ before(async () => {
     httpServer = http.createServer(app);
     ioServer = new Server(httpServer, { cors: { origin: true, credentials: true } });
     configureSocketServer(ioServer);
+    app.locals.io = ioServer;
     await new Promise((resolve) => httpServer.listen(0, "127.0.0.1", resolve));
     socketUrl = `http://127.0.0.1:${httpServer.address().port}`;
 });
@@ -102,6 +103,7 @@ beforeEach(async () => {
 
 after(async () => {
     clearRoomDocs();
+    ioServer.disconnectSockets(true);
     ioServer.close();
     await new Promise((resolve) => httpServer.close(resolve));
     await mongoose.disconnect();
@@ -256,4 +258,86 @@ test("rejects unauthenticated socket connections", async () => {
     });
     assert.match(error.message, /Unauthorized/);
     socket.close();
+});
+
+test("streams validated drafts to other room members", async () => {
+    const ownerSocket = await connectSocket(owner.accessToken, room._id);
+    const editorSocket = await connectSocket(editor.accessToken, room._id);
+    const draft = { id: "draft-1", type: "rectangle", x: 10, y: 10, width: 40, height: 30 };
+
+    const received = waitForEvent(ownerSocket, "draft:update");
+    editorSocket.emit("draft:stream", { roomId: room._id, draft });
+    const payload = await received;
+    assert.equal(payload.userId, editor.user.id);
+    assert.deepEqual(payload.draft, draft);
+
+    const cleared = waitForEvent(ownerSocket, "draft:update");
+    editorSocket.emit("draft:stream", { roomId: room._id, draft: null });
+    assert.equal((await cleared).draft, null);
+    editorSocket.close();
+    ownerSocket.close();
+});
+
+test("rejects invalid draft payloads without broadcasting", async () => {
+    const ownerSocket = await connectSocket(owner.accessToken, room._id);
+    const editorSocket = await connectSocket(editor.accessToken, room._id);
+    let broadcast = false;
+    ownerSocket.on("draft:update", () => { broadcast = true; });
+
+    const error = waitForEvent(editorSocket, "canvas:error");
+    editorSocket.emit("draft:stream", { roomId: room._id, draft: { id: "bad", type: "freehand", points: [] } });
+    assert.match((await error).message, /Freehand/);
+
+    const tooLarge = waitForEvent(editorSocket, "canvas:error");
+    editorSocket.emit("draft:stream", {
+        roomId: room._id,
+        draft: { id: "big", type: "freehand", points: Array.from({ length: 10000 }, (_, index) => ({ x: index, y: index })) },
+    });
+    assert.match((await tooLarge).message, /too large/);
+
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    assert.equal(broadcast, false);
+    editorSocket.close();
+    ownerSocket.close();
+});
+
+test("room:leave clears presence and draft for remaining members", async () => {
+    const ownerSocket = await connectSocket(owner.accessToken, room._id);
+    const editorSocket = await connectSocket(editor.accessToken, room._id);
+
+    const leftPresence = waitForEvent(ownerSocket, "presence:left");
+    const clearedDraft = waitForEvent(ownerSocket, "draft:update");
+    const result = await emitWithAck(editorSocket, "room:leave");
+    assert.equal(result.ok, true);
+    assert.equal((await leftPresence).userId, editor.user.id);
+    assert.equal((await clearedDraft).draft, null);
+
+    let receivedAfterLeave = false;
+    ownerSocket.once("canvas:snapshot", () => { receivedAfterLeave = true; });
+    editorSocket.emit("canvas:snapshot", {
+        roomId: room._id,
+        canvasData: [{ id: "after-leave", type: "line", x: 0, y: 0, x2: 1, y2: 1 }],
+    });
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    assert.equal(receivedAfterLeave, false);
+
+    editorSocket.close();
+    ownerSocket.close();
+});
+
+test("removed collaborators are kicked from live sessions", async () => {
+    const editorSocket = await connectSocket(editor.accessToken, room._id);
+    const ownerSocket = await connectSocket(owner.accessToken, room._id);
+
+    const kicked = waitForEvent(editorSocket, "room:kicked");
+    const leftPresence = waitForEvent(ownerSocket, "presence:left");
+    const removal = await request(app)
+        .delete(`/api/rooms/${room._id}/collaborators/${editor.user.id}`)
+        .set("Authorization", `Bearer ${owner.accessToken}`);
+    assert.equal(removal.status, 200);
+    assert.equal((await kicked).roomId, room._id);
+    assert.equal((await leftPresence).userId, editor.user.id);
+
+    editorSocket.close();
+    ownerSocket.close();
 });

@@ -28,10 +28,21 @@ roomDocCleanupInterval.unref();
 const elementsMap = (doc) => doc.getMap("elements");
 const orderArray = (doc) => doc.getArray("elementOrder");
 
-export const canvasToYDoc = (doc, canvasData = [], origin = "initial") => {
+export const canvasToYDoc = (doc, canvasData = [], origin = "initial", prevCanvasData = null) => {
     doc.transact(() => {
         const elements = elementsMap(doc);
         const order = orderArray(doc);
+
+        if (canvasData.length === 0 && (origin === "clear" || (prevCanvasData && prevCanvasData.length > 0))) {
+            for (const id of [...elements.keys()]) {
+                elements.delete(id);
+            }
+            if (order.length) {
+                order.delete(0, order.length);
+            }
+            return;
+        }
+
         const nextIds = new Set();
         const nextOrder = [];
 
@@ -45,34 +56,82 @@ export const canvasToYDoc = (doc, canvasData = [], origin = "initial") => {
             }
         }
 
-        for (const id of elements.keys()) {
-            if (!nextIds.has(id)) elements.delete(id);
+        if (prevCanvasData) {
+            const prevIds = new Set(prevCanvasData.map((e) => e?.id).filter(Boolean));
+            for (const id of prevIds) {
+                if (!nextIds.has(id)) {
+                    elements.delete(id);
+                    let currentOrder = order.toArray();
+                    let idx = currentOrder.indexOf(id);
+                    while (idx !== -1) {
+                        order.delete(idx, 1);
+                        currentOrder = order.toArray();
+                        idx = currentOrder.indexOf(id);
+                    }
+                }
+            }
+        } else if (origin === "initial" || origin === "remote" || origin === "replace") {
+            for (const id of [...elements.keys()]) {
+                if (!nextIds.has(id)) elements.delete(id);
+            }
+            const currentOrder = order.toArray();
+            if (
+                currentOrder.length !== nextOrder.length ||
+                currentOrder.some((id, index) => id !== nextOrder[index])
+            ) {
+                if (order.length) order.delete(0, order.length);
+                order.push(nextOrder);
+            }
+            return;
         }
 
-        const currentOrder = order.toArray();
-        if (
-            currentOrder.length !== nextOrder.length ||
-            currentOrder.some((id, index) => id !== nextOrder[index])
-        ) {
-            if (order.length) order.delete(0, order.length);
-            order.push(nextOrder);
+        const existingOrderIds = new Set(order.toArray());
+        for (const id of nextOrder) {
+            if (!existingOrderIds.has(id)) {
+                order.push([id]);
+                existingOrderIds.add(id);
+            }
         }
     }, origin);
 };
 
 export const yDocToCanvas = (doc) => {
     const elements = elementsMap(doc);
-    return orderArray(doc)
-        .toArray()
-        .map((id) => {
-            const value = elements.get(id);
+    const order = orderArray(doc).toArray();
+    const orderedElements = [];
+    const seenIds = new Set();
+
+    for (const id of order) {
+        if (seenIds.has(id)) continue;
+        const value = elements.get(id);
+        if (value) {
             try {
-                return value ? JSON.parse(value) : null;
+                const parsed = JSON.parse(value);
+                if (parsed) {
+                    orderedElements.push(parsed);
+                    seenIds.add(id);
+                }
             } catch {
-                return null;
+                // Ignore invalid JSON
             }
-        })
-        .filter(Boolean);
+        }
+    }
+
+    for (const [id, value] of elements.entries()) {
+        if (!seenIds.has(id)) {
+            try {
+                const parsed = JSON.parse(value);
+                if (parsed) {
+                    orderedElements.push(parsed);
+                    seenIds.add(id);
+                }
+            } catch {
+                // Ignore invalid JSON
+            }
+        }
+    }
+
+    return orderedElements;
 };
 
 export const getRoomDoc = async (roomId) => {
@@ -125,7 +184,7 @@ export const persistRoomDoc = async (roomId, userId, doc) => {
                 },
                 $inc: { __v: 1 },
             },
-            { new: true }
+            { returnDocument: "after" }
         );
 
         if (updatedRoom) {

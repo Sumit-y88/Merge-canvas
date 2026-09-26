@@ -32,43 +32,46 @@ export const Modal = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
-      {/* Backdrop */}
+      {/* Backdrop: Warm paper wash */}
       <div
-         className="fixed inset-0 bg-foreground/65 backdrop-blur-md transition-opacity animate-fade-in"
+        className="fixed inset-0 bg-background/80 dark:bg-black/80 backdrop-blur-[2px] transition-opacity animate-fade-in"
         onClick={onClose}
         aria-hidden="true"
       />
 
-      {/* Modal Container */}
+      {/* Modal Container: Stitch Tactile Workshop pinned board */}
       <div
         className={cn(
-          "relative w-full bg-card text-card-foreground border border-border rounded-2xl shadow-2xl overflow-hidden z-10 animate-scale-in glass-panel",
+          "relative w-full bg-surface text-foreground border-[2px] border-foreground rounded-DEFAULT shadow-stamp-xl overflow-hidden z-10 animate-scale-in",
           maxWidth,
           className
         )}
         role="dialog"
         aria-modal="true"
       >
+        {/* Top Decorative Washi Tape */}
+        <div className="washi-tape absolute -top-3 left-1/2 -translate-x-1/2 w-28 h-5 z-20 pointer-events-none" />
+
         {/* Close Button */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-muted-foreground hover:text-foreground hover:bg-secondary/80 rounded-xl transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-ring"
+          className="absolute top-3.5 right-3.5 p-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-DEFAULT border border-transparent hover:border-foreground/30 transition-all focus:outline-none"
           aria-label="Close modal"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4" />
         </button>
 
         {/* Header */}
         {(title || description) && (
-          <div className="px-6 pt-6 pb-2 text-left">
+          <div className="px-6 pt-6 pb-2 text-left border-b border-foreground/15">
             {title && (
-              <h2 className="text-xl font-bold text-foreground tracking-tight pr-8">
+              <h2 className="font-headline text-lg sm:text-xl font-bold text-foreground tracking-tight pr-8">
                 {title}
               </h2>
             )}
             {description && (
-              <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+              <p className="font-body text-xs text-muted-foreground mt-1 leading-relaxed">
                 {description}
               </p>
             )}
@@ -80,7 +83,7 @@ export const Modal = ({
 
         {/* Footer */}
         {footer && (
-          <div className="px-6 py-4 bg-secondary/30 border-t border-border flex items-center justify-end gap-3">
+          <div className="px-6 py-3 border-t border-foreground/15 bg-secondary/50 flex items-center justify-end gap-2">
             {footer}
           </div>
         )}

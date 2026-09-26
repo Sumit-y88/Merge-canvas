@@ -31,7 +31,10 @@ export const validateCanvasData = (canvasData) => {
                 fail(`Canvas element ${key} is invalid`);
             }
         }
-        if (element.type === "freehand" && (!Array.isArray(element.points) || element.points.length > MAX_POINTS)) fail("Freehand stroke is too large");
+        if (element.type === "freehand") {
+            if (!Array.isArray(element.points) || element.points.length === 0) fail("Freehand stroke must contain points");
+            if (element.points.length >= MAX_POINTS) fail("Freehand stroke is too large");
+        }
         if (typeof element.text === "string" && element.text.length > 10000) fail("Canvas text is too long");
         if (element.type === "image" && typeof element.src === "string" && Buffer.byteLength(element.src, "utf8") > MAX_IMAGE_BYTES * 1.4) fail("Image payload is too large");
     }
@@ -42,4 +45,12 @@ export const validateYjsUpdate = (update) => {
     if (typeof update !== "string" || update.length === 0 || update.length > Math.ceil(MAX_CANVAS_BYTES * 1.4)) fail("Yjs update is invalid or too large");
     if (!/^[A-Za-z0-9+/]*={0,2}$/.test(update)) fail("Yjs update encoding is invalid");
     return update;
+};
+
+export const validateDraft = (draft) => {
+    if (draft === null || draft === undefined) return null;
+    if (typeof draft !== "object" || Array.isArray(draft)) fail("Draft must be a single element or null");
+    if (Buffer.byteLength(JSON.stringify(draft), "utf8") > 256 * 1024) fail("Draft payload is too large");
+    validateCanvasData([draft]);
+    return draft;
 };

@@ -13,6 +13,7 @@ const io = new Server(httpServer, {
     maxHttpBufferSize: Number(process.env.MAX_CANVAS_BYTES || 8 * 1024 * 1024),
 });
 configureSocketServer(io);
+app.locals.io = io;
 
 const PORT = process.env.PORT || 5000;
 

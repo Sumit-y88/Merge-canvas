@@ -1,13 +1,15 @@
+"use client";
+
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { googleLogin } from "../api/authApi";
+import { useRouter } from "next/navigation";
+import { googleLogin } from "../api/auth";
 import useAuth from "../hooks/useAuth";
 
 const GoogleSignInButton = () => {
   const buttonRef = useRef(null);
   const [error, setError] = useState("");
   const { saveAuth } = useAuth();
-  const navigate = useNavigate();
+  const router = useRouter();
 
   useEffect(() => {
     let cancelled = false;
@@ -16,7 +18,7 @@ const GoogleSignInButton = () => {
 
     const renderButton = () => {
       if (cancelled) return;
-      if (!import.meta.env.VITE_GOOGLE_CLIENT_ID) {
+      if (!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
         setError("Google Sign-In is not configured");
         return;
       }
@@ -27,13 +29,13 @@ const GoogleSignInButton = () => {
       }
 
       window.google.accounts.id.initialize({
-        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+        client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
         callback: async ({ credential }) => {
           try {
             setError("");
             const data = await googleLogin(credential);
             saveAuth(data);
-            navigate("/dashboard");
+            router.push("/dashboard");
           } catch (requestError) {
             setError(requestError.response?.data?.message || "Google sign-in failed");
           }
@@ -69,7 +71,7 @@ const GoogleSignInButton = () => {
       cancelled = true;
       resizeObserver?.disconnect();
     };
-  }, [navigate, saveAuth]);
+  }, [router, saveAuth]);
 
   return (
     <div className="flex w-full flex-col items-center gap-2">

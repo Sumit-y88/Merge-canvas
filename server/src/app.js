@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import authRoutes from "./routes/authRoutes.js";
 import roomRoutes from "./routes/roomRoute.js";
-import { authRateLimit, securityHeaders } from "./middleware/securityMiddleware.js";
+import { securityHeaders } from "./middleware/securityMiddleware.js";
 import { requestLogger, logger } from "./utils/logger.js";
 
 dotenv.config();
@@ -13,7 +13,7 @@ const configuredClientOrigins = (process.env.CLIENT_URL || "")
     .split(",")
     .map(normalizeOrigin)
     .filter(Boolean);
-export const clientOrigins = [...new Set(["https://merge-canvas.vercel.app", ...configuredClientOrigins])];
+export const clientOrigins = [...new Set(["https://merge-canvas.vercel.app", "http://localhost:3000", ...configuredClientOrigins])];
 export const clientOrigin = clientOrigins[0];
 const app = express();
 app.locals.dbReady = false;

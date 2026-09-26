@@ -4,19 +4,19 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
     "lint": "eslint .",
-    "test": "node --test",
-    "preview": "vite preview"
+    "test": "node --test"
   },
   "dependencies": {
     "axios": "^1.19.0",
     "clsx": "^2.1.1",
     "lucide-react": "^1.30.0",
     "react": "^19.2.8",
+    "next": "^16.1.6",
     "react-dom": "^19.2.8",
-    "react-router-dom": "^7.18.2",
     "socket.io-client": "^4.8.3",
     "tailwind-merge": "^3.6.0",
     "yjs": "^13.6.32"
@@ -25,14 +25,11 @@
     "@eslint/js": "^10.0.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.4",
     "autoprefixer": "^10.5.4",
     "eslint": "^10.8.0",
     "eslint-plugin-react-hooks": "^7.1.1",
-    "eslint-plugin-react-refresh": "^0.5.3",
     "globals": "^17.7.0",
     "postcss": "^8.5.26",
-    "tailwindcss": "^3.4.19",
-    "vite": "^8.2.0"
+    "tailwindcss": "^3.4.19"
   }
 }

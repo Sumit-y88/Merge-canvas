@@ -6,7 +6,7 @@ import Redis from "ioredis";
 import { createAdapter } from "@socket.io/redis-adapter";
 import * as Y from "yjs";
 import { getRoomDoc, persistRoomDoc, replaceRoomDoc } from "./yjsRoomStore.js";
-import { validateCanvasData, validateYjsUpdate } from "../utils/payloadValidation.js";
+import { validateCanvasData, validateDraft, validateYjsUpdate } from "../utils/payloadValidation.js";
 import { logger } from "../utils/logger.js";
 
 const findMember = (room, userId) =>
@@ -131,9 +131,37 @@ const registerRoomEvents = (socket) => {
         });
     });
 
+    socket.on("room:leave", (...args) => {
+        const acknowledge = typeof args[0] === "function" ? args[0] : typeof args[1] === "function" ? args[1] : undefined;
+        const roomId = socket.data.roomId;
+        if (!roomId) return acknowledge?.({ ok: true });
+
+        socket.leave(roomId);
+        socket.data.roomId = undefined;
+        socket.to(roomId).emit("presence:left", { userId: socket.data.user._id });
+        socket.to(roomId).emit("draft:update", { userId: socket.data.user._id, draft: null });
+        acknowledge?.({ ok: true });
+    });
+
+    socket.on("draft:stream", ({ roomId, draft } = {}) => {
+        if (socket.data.roomId !== roomId) return;
+        try {
+            validateDraft(draft);
+        } catch (error) {
+            return socket.emit("canvas:error", { message: error.message });
+        }
+        socket.to(roomId).emit("draft:update", {
+            userId: socket.data.user._id,
+            name: socket.data.user.name,
+            color: socket.data.user.avatarColor,
+            draft: draft || null,
+        });
+    });
+
     socket.on("disconnect", () => {
         if (socket.data.roomId) {
             socket.to(socket.data.roomId).emit("presence:left", { userId: socket.data.user._id });
+            socket.to(socket.data.roomId).emit("draft:update", { userId: socket.data.user._id, draft: null });
         }
     });
 };
@@ -141,6 +169,30 @@ const registerRoomEvents = (socket) => {
 export const configureSocketServer = (io) => {
     io.use(authenticateSocket);
     io.on("connection", registerRoomEvents);
+};
+
+export const kickUserFromRoom = async (io, roomId, userId) => {
+    const target = userId.toString();
+    const sockets = await io.in(roomId.toString()).fetchSockets();
+    for (const socket of sockets) {
+        if (socket.data.user?._id?.toString() !== target) continue;
+        socket.leave(roomId);
+        socket.data.roomId = undefined;
+        socket.emit("room:kicked", { roomId });
+    }
+    if (sockets.length) {
+        io.to(roomId.toString()).emit("presence:left", { userId: target });
+        io.to(roomId.toString()).emit("draft:update", { userId: target, draft: null });
+    }
+};
+
+export const kickAllUsersFromRoom = async (io, roomId) => {
+    const sockets = await io.in(roomId.toString()).fetchSockets();
+    for (const socket of sockets) {
+        socket.leave(roomId);
+        socket.data.roomId = undefined;
+        socket.emit("room:kicked", { roomId });
+    }
 };
 
 export const configureSocketRedisAdapter = async (io) => {

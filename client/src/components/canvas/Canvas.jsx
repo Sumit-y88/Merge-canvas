@@ -1,29 +1,27 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-
-const createId = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-const shapeTools = ["Rectangle", "Ellipse", "Line", "Arrow", "Sticky"];
-
-const resolveCssColor = (color, fallback = "#1c1917") => {
-  if (!color || color === "transparent") return color;
-  if (typeof window === "undefined") return fallback;
-  const match = color.match(/^var\((--[\w-]+)\)$/);
-  if (!match) return color;
-  const value = getComputedStyle(document.documentElement).getPropertyValue(match[1]).trim();
-  return value ? `hsl(${value})` : fallback;
-};
-
-const imageCache = new Map();
-const getLoadedImage = (src, onLoaded) => {
-  if (!src) return null;
-  if (imageCache.has(src)) return imageCache.get(src);
-  const img = new Image();
-  img.src = src;
-  img.onload = () => {
-    imageCache.set(src, img);
-    onLoaded?.();
-  };
-  return null;
-};
+import {
+  boundsFor,
+  containsPoint,
+  createId,
+  getBounds,
+  handlePoints,
+  moveElement,
+  nearPoint,
+  normalizeRect,
+  resizeElement,
+  snapVal,
+  syncConnections,
+  textDimensions,
+  connectableTypes,
+} from "../../lib/canvas/geometry";
+import { createElement, createTextElement, isShapeTool } from "../../lib/canvas/elements";
+import {
+  drawBackgroundGrid,
+  drawCollaborationTag,
+  drawElement,
+  drawRemoteCursor,
+  resolveCssColor,
+} from "../../lib/canvas/render";
 
 const getPoint = (event, canvas, zoom, pan) => {
   const rect = canvas.getBoundingClientRect();
@@ -35,405 +33,21 @@ const getCanvasPosition = (event, canvas) => {
   return { x: event.clientX - rect.left, y: event.clientY - rect.top };
 };
 
-const snapVal = (val, enabled = false, step = 20) => (enabled ? Math.round(val / step) * step : val);
+const RESIZE_CURSORS = ["nwse-resize", "ns-resize", "nesw-resize", "ew-resize", "ew-resize", "nesw-resize", "ns-resize", "nwse-resize"];
 
-const textDimensions = (text = "", fontSize = 16) => {
-  const lines = text.split("\n");
-  return {
-    width: Math.max(1, ...lines.map((line) => line.length)) * fontSize * 0.6,
-    height: Math.max(1, lines.length) * fontSize * 1.2,
-  };
-};
-
-const getBounds = (element) => {
-  if (element.type === "text") {
-    const dimensions = textDimensions(element.text, element.fontSize);
-    return {
-      x: element.x,
-      y: element.y - element.fontSize,
-      width: element.width || dimensions.width,
-      height: element.height || dimensions.height,
-    };
-  }
-  if (element.points?.length) {
-    const xs = element.points.map((point) => point.x);
-    const ys = element.points.map((point) => point.y);
-    return {
-      x: Math.min(...xs),
-      y: Math.min(...ys),
-      width: Math.max(...xs) - Math.min(...xs),
-      height: Math.max(...ys) - Math.min(...ys),
-    };
-  }
-  return { x: element.x, y: element.y, width: element.width, height: element.height };
-};
-
-const boundsFor = (elements) =>
-  elements.reduce((result, element) => {
-    const current = getBounds(element);
-    const x = Math.min(result.x, current.x);
-    const y = Math.min(result.y, current.y);
-    return {
-      x,
-      y,
-      width: Math.max(result.x + result.width, current.x + current.width) - x,
-      height: Math.max(result.y + result.height, current.y + current.height) - y,
-    };
-  }, getBounds(elements[0]));
-
-const containsPoint = (bounds, point, padding = 8) =>
-  point.x >= bounds.x - padding &&
-  point.x <= bounds.x + bounds.width + padding &&
-  point.y >= bounds.y - padding &&
-  point.y <= bounds.y + bounds.height + padding;
-
-const normalizeRect = (start, end) => ({
-  x: Math.min(start.x, end.x),
-  y: Math.min(start.y, end.y),
-  width: Math.abs(end.x - start.x),
-  height: Math.abs(end.y - start.y),
-});
-
-const connectionTools = ["Line", "Arrow"];
-const connectableTypes = ["rectangle", "ellipse", "sticky"];
-
-const connectionAnchors = (element) => {
-  const bounds = getBounds(element);
-  if (element.type === "ellipse") {
-    const center = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
-    const radiusX = Math.max(bounds.width / 2, 1);
-    const radiusY = Math.max(bounds.height / 2, 1);
-    const angles = [225, 270, 315, 180, 0, 135, 90, 45].map((degrees) => (degrees * Math.PI) / 180);
-    return angles.map((angle) => ({ x: center.x + Math.cos(angle) * radiusX, y: center.y + Math.sin(angle) * radiusY }));
-  }
-  return handlePoints(bounds).map(([x, y]) => ({ x, y }));
-};
-
-const connectionPoint = (element, point, anchorIndex) => {
-  const anchors = connectionAnchors(element);
-  if (Number.isInteger(anchorIndex) && anchors[anchorIndex]) return anchors[anchorIndex];
-  return anchors
-    .map((anchor, index) => ({ anchor, index, distance: Math.hypot(anchor.x - point.x, anchor.y - point.y) }))
-    .sort((left, right) => left.distance - right.distance)[0].anchor;
-};
-
-const snapToShape = (point, elements, zoom) => {
-  const candidate = elements
-    .filter((element) => connectableTypes.includes(element.type))
-    .flatMap((element) => connectionAnchors(element).map((target, anchorIndex) => ({ element, target, anchorIndex, distance: Math.hypot(target.x - point.x, target.y - point.y) })))
-    .sort((a, b) => a.distance - b.distance)[0];
-  if (!candidate || candidate.distance > 18 / zoom) return { point, elementId: null, anchorIndex: null };
-  return { point: candidate.target, elementId: candidate.element.id, anchorIndex: candidate.anchorIndex };
-};
-
-const syncConnections = (items, changedId) =>
-  items.map((element) => {
-    if (!connectionTools.map((tool) => tool.toLowerCase()).includes(element.type) || !element.points) return element;
-    const points = [...element.points];
-    ["startConnection", "endConnection"].forEach((key, index) => {
-      if (element[key] !== changedId) return;
-      const shape = items.find((candidate) => candidate.id === changedId);
-      if (shape) points[index] = connectionPoint(shape, points[index], element[index === 0 ? "startConnectionAnchor" : "endConnectionAnchor"]);
-    });
-    return { ...element, points };
-  });
-
-const handlePoints = (bounds) => [
-  [bounds.x, bounds.y],
-  [bounds.x + bounds.width / 2, bounds.y],
-  [bounds.x + bounds.width, bounds.y],
-  [bounds.x, bounds.y + bounds.height / 2],
-  [bounds.x + bounds.width, bounds.y + bounds.height / 2],
-  [bounds.x, bounds.y + bounds.height],
-  [bounds.x + bounds.width / 2, bounds.y + bounds.height],
-  [bounds.x + bounds.width, bounds.y + bounds.height],
-];
-
-const nearPoint = (point, target, padding) => Math.hypot(point.x - target[0], point.y - target[1]) <= padding;
-
-const resizeElement = (element, original, next) => {
-  const scaleY = original.height ? next.height / original.height : 1;
-  if (element.points) {
-    return {
-      ...element,
-      points: element.points.map((point) => ({
-        x: next.x + (original.width ? (point.x - original.x) / original.width : 0.5) * next.width,
-        y: next.y + (original.height ? (point.y - original.y) / original.height : 0.5) * next.height,
-      })),
-    };
-  }
-  return {
-    ...element,
-    x: next.x,
-    y: next.y,
-    width: next.width,
-    height: next.height,
-    fontSize: element.type === "text" || element.type === "sticky" ? Math.max(10, element.fontSize * scaleY) : element.fontSize,
-  };
-};
-
-const drawFreehand = (context, points) => {
-  if (!points.length) return;
-  context.beginPath();
-  context.moveTo(points[0].x, points[0].y);
-  for (let index = 1; index < points.length - 1; index += 1) {
-    const midpoint = { x: (points[index].x + points[index + 1].x) / 2, y: (points[index].y + points[index + 1].y) / 2 };
-    context.quadraticCurveTo(points[index].x, points[index].y, midpoint.x, midpoint.y);
-  }
-  const last = points[points.length - 1];
-  context.lineTo(last.x, last.y);
-  context.stroke();
-};
-
-const contrastColor = (color) => {
-  if (!color || color === "transparent") return "#111827";
-  const value = color.replace("#", "");
-  if (![3, 6].includes(value.length) || /[^0-9a-f]/i.test(value)) return "#111827";
-  const hex = value.length === 3 ? value.split("").map((part) => part + part).join("") : value;
-  const [red, green, blue] = [0, 2, 4].map((index) => parseInt(hex.slice(index, index + 2), 16) / 255);
-  const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
-  return luminance > 0.55 ? "#111827" : "#f8fafc";
-};
-
-const drawBackgroundGrid = (context, canvas, zoom, pan, gridStyle) => {
-  if (gridStyle === "none") return;
-
-  const dpr = window.devicePixelRatio || 1;
-  const width = canvas.width / dpr;
-  const height = canvas.height / dpr;
-  const gridSize = 24;
-
-  const startX = Math.floor(-pan.x / zoom / gridSize) * gridSize;
-  const endX = Math.ceil((width - pan.x) / zoom / gridSize) * gridSize;
-  const startY = Math.floor(-pan.y / zoom / gridSize) * gridSize;
-  const endY = Math.ceil((height - pan.y) / zoom / gridSize) * gridSize;
-
-  context.save();
-  if (gridStyle === "grid") {
-    context.strokeStyle = "rgba(148, 163, 184, 0.18)";
-    context.lineWidth = 1 / zoom;
-    context.beginPath();
-    for (let x = startX; x <= endX; x += gridSize) {
-      context.moveTo(x, startY);
-      context.lineTo(x, endY);
-    }
-    for (let y = startY; y <= endY; y += gridSize) {
-      context.moveTo(startX, y);
-      context.lineTo(endX, y);
-    }
-    context.stroke();
-  } else if (gridStyle === "dot") {
-    context.fillStyle = "rgba(148, 163, 184, 0.35)";
-    const dotRadius = Math.max(1, 1.2 / zoom);
-    for (let x = startX; x <= endX; x += gridSize) {
-      for (let y = startY; y <= endY; y += gridSize) {
-        context.beginPath();
-        context.arc(x, y, dotRadius, 0, Math.PI * 2);
-        context.fill();
-      }
-    }
-  }
-  context.restore();
-};
-
-const drawStickyNote = (context, element, outline = false) => {
-  const bounds = getBounds(element);
-  const rx = 12;
-  const fillColor = element.fillColor || "#fef08a";
-  const strokeColor = element.strokeColor || "#eab308";
-
-  context.save();
-  context.translate(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
-  context.rotate(((element.rotation || 0) * Math.PI) / 180);
-  context.translate(-(bounds.x + bounds.width / 2), -(bounds.y + bounds.height / 2));
-
-  if (!outline) {
-    context.shadowColor = "rgba(15, 23, 42, 0.16)";
-    context.shadowBlur = 12;
-    context.shadowOffsetY = 4;
-  }
-
-  context.beginPath();
-  context.roundRect(element.x, element.y, element.width, element.height, rx);
-  context.fillStyle = outline ? "transparent" : fillColor;
-  context.fill();
-
-  context.shadowBlur = 0;
-  context.shadowOffsetY = 0;
-  context.strokeStyle = outline ? contrastColor(strokeColor) : strokeColor;
-  context.lineWidth = outline ? (element.strokeWidth || 1) + 2 : element.strokeWidth || 1.5;
-  context.stroke();
-
-  if (!outline) {
-    context.fillStyle = strokeColor;
-    context.globalAlpha = 0.3;
-    context.beginPath();
-    context.roundRect(element.x, element.y, element.width, 10, [rx, rx, 0, 0]);
-    context.fill();
-    context.globalAlpha = 1.0;
-  }
-
-  if (element.text) {
-    context.fillStyle = "#1e293b";
-    const fontSize = element.fontSize || 16;
-    context.font = `${fontSize}px sans-serif`;
-    context.textBaseline = "top";
-
-    const padding = 14;
-    const maxWidth = Math.max(10, element.width - padding * 2);
-    const lineHeight = fontSize * 1.35;
-    const lines = element.text.split("\n");
-    let y = element.y + padding + 6;
-
-    lines.forEach((lineText) => {
-      const words = lineText.split(" ");
-      let currentLine = "";
-      for (let i = 0; i < words.length; i += 1) {
-        const testLine = currentLine + (currentLine ? " " : "") + words[i];
-        const testWidth = context.measureText(testLine).width;
-        if (testWidth > maxWidth && i > 0) {
-          context.fillText(currentLine, element.x + padding, y);
-          currentLine = words[i];
-          y += lineHeight;
-          if (y + lineHeight > element.y + element.height - padding) break;
-        } else {
-          currentLine = testLine;
-        }
-      }
-      if (currentLine && y + lineHeight <= element.y + element.height - padding) {
-        context.fillText(currentLine, element.x + padding, y);
-        y += lineHeight;
-      }
-    });
-  }
-
-  context.restore();
-};
-
-const drawImageElement = (context, element, outline = false, onLoaded) => {
-  const bounds = getBounds(element);
-  context.save();
-  context.translate(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
-  context.rotate(((element.rotation || 0) * Math.PI) / 180);
-  context.translate(-(bounds.x + bounds.width / 2), -(bounds.y + bounds.height / 2));
-
-  if (outline) {
-    context.strokeStyle = resolveCssColor("var(--primary)");
-    context.lineWidth = 2;
-    context.strokeRect(element.x, element.y, element.width, element.height);
-  } else {
-    const loadedImg = getLoadedImage(element.src, onLoaded);
-    if (loadedImg) {
-      context.drawImage(loadedImg, element.x, element.y, element.width, element.height);
-    } else {
-      context.fillStyle = "#f1f5f9";
-      context.fillRect(element.x, element.y, element.width, element.height);
-      context.strokeStyle = "#cbd5e1";
-      context.strokeRect(element.x, element.y, element.width, element.height);
-      context.fillStyle = "#64748b";
-      context.font = "14px sans-serif";
-      context.textAlign = "center";
-      context.textBaseline = "middle";
-      context.fillText("Loading Image...", element.x + element.width / 2, element.y + element.height / 2);
-    }
-  }
-  context.restore();
-};
-
-const drawElementPath = (context, element, outline = false, onLoaded) => {
-  if (element.type === "sticky") {
-    drawStickyNote(context, element, outline);
-    return;
-  }
-  if (element.type === "image") {
-    drawImageElement(context, element, outline, onLoaded);
-    return;
-  }
-
-  context.save();
-  const bounds = getBounds(element);
-  context.translate(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
-  context.rotate(((element.rotation || 0) * Math.PI) / 180);
-  context.translate(-(bounds.x + bounds.width / 2), -(bounds.y + bounds.height / 2));
-  const strokeColor = resolveCssColor(element.strokeColor);
-  const fillColor = resolveCssColor(element.fillColor);
-  context.strokeStyle = outline ? contrastColor(strokeColor) : strokeColor;
-  context.fillStyle = outline || fillColor === "transparent" ? "transparent" : fillColor;
-  context.lineWidth = outline ? (element.strokeWidth || 1) + 3 : element.strokeWidth || 1;
-  context.setLineDash(element.strokeStyle === "dashed" ? [10, 8] : element.strokeStyle === "dotted" ? [2, 7] : []);
-  context.lineCap = "round";
-  context.lineJoin = "round";
-
-  if (element.type === "freehand") drawFreehand(context, element.points);
-  if (element.type === "rectangle") {
-    const radius = Math.min(14, Math.abs(element.width) / 4, Math.abs(element.height) / 4);
-    context.beginPath();
-    context.roundRect(element.x, element.y, element.width, element.height, radius);
-    if (fillColor !== "transparent") context.fill();
-    context.stroke();
-  }
-  if (element.type === "ellipse") {
-    context.beginPath();
-    context.ellipse(
-      element.x + element.width / 2,
-      element.y + element.height / 2,
-      Math.abs(element.width / 2),
-      Math.abs(element.height / 2),
-      0,
-      0,
-      Math.PI * 2
-    );
-    if (fillColor !== "transparent") context.fill();
-    context.stroke();
-  }
-  if (element.type === "line" || element.type === "arrow") {
-    const [start, end] = element.points;
-    context.beginPath();
-    context.moveTo(start.x, start.y);
-    context.lineTo(end.x, end.y);
-    context.stroke();
-    if (element.type === "arrow") {
-      const angle = Math.atan2(end.y - start.y, end.x - start.x);
-      const size = Math.max(10, element.strokeWidth * 3);
-      context.beginPath();
-      context.moveTo(end.x, end.y);
-      context.lineTo(end.x - size * Math.cos(angle - Math.PI / 6), end.y - size * Math.sin(angle - Math.PI / 6));
-      context.moveTo(end.x, end.y);
-      context.lineTo(end.x - size * Math.cos(angle + Math.PI / 6), end.y - size * Math.sin(angle + Math.PI / 6));
-      context.stroke();
-    }
-  }
-  if (element.type === "text") {
-    context.setLineDash([]);
-    context.font = `${element.fontSize}px sans-serif`;
-    const lineHeight = element.fontSize * 1.2;
-    element.text.split("\n").forEach((line, index) => {
-      const y = element.y + index * lineHeight;
-      if (outline) {
-        context.strokeStyle = contrastColor(element.strokeColor);
-        context.lineWidth = 4;
-        context.strokeText(line, element.x, y);
-      } else {
-        context.fillStyle = strokeColor;
-        context.fillText(line, element.x, y);
-      }
-    });
-  }
-  context.restore();
-};
-
-const drawElement = (context, element, onLoaded) => {
-  // The contrast pass was useful for text, but it created a second visible
-  // outline around shapes—especially against the dark canvas background.
-  if (element.type === "text") drawElementPath(context, element, true, onLoaded);
-  drawElementPath(context, element, false, onLoaded);
-};
-
-const moveElement = (element, dx, dy) => ({
-  ...element,
-  x: element.x === undefined ? element.x : element.x + dx,
-  y: element.y === undefined ? element.y : element.y + dy,
-  points: element.points?.map((point) => ({ x: point.x + dx, y: point.y + dy })),
+const stickyLivePreview = ({ id, x, y, width, height, text, fontSize, fillColor }) => ({
+  id: id || "live-sticky-preview",
+  type: "sticky",
+  x,
+  y,
+  width: width || 180,
+  height: height || 140,
+  text,
+  fillColor: fillColor || "#fef08a",
+  strokeColor: "#eab308",
+  fontSize: fontSize || 16,
+  strokeWidth: 1.5,
+  rotation: 0,
 });
 
 const Canvas = ({
@@ -448,12 +62,14 @@ const Canvas = ({
   initialElements = [],
   remoteElements = null,
   remoteCursors = {},
+  remoteDrafts = {},
   readOnly = false,
   clearRequest = 0,
   exportRequest = 0,
   zoomCommand = null,
   onZoomChange,
   onElementsChange,
+  onDraftChange,
   onInteractionActiveChange,
   onCursorMove,
   onToolChange,
@@ -464,7 +80,10 @@ const Canvas = ({
   const interactionRef = useRef(null);
   const pendingRemoteElementsRef = useRef(null);
   const elementsRef = useRef(initialElements);
+  const draftRef = useRef(null);
   const processedZoomCommandRef = useRef(null);
+  const spacePressedRef = useRef(false);
+
   const [elements, setElements] = useState(initialElements);
   const [selectedIds, setSelectedIds] = useState([]);
   const [draft, setDraft] = useState(null);
@@ -475,9 +94,18 @@ const Canvas = ({
   const [, setRerenderTick] = useState(0);
   const [isPanning, setIsPanning] = useState(false);
   const [canvasCursor, setCanvasCursor] = useState("default");
-  const spacePressedRef = useRef(false);
 
-  const forceRerender = useCallback(() => setRerenderTick((t) => t + 1), []);
+  const forceRerender = useCallback(() => setRerenderTick((tick) => tick + 1), []);
+
+  // --- Draft streaming helpers -------------------------------------------------
+  const publishDraft = useCallback(
+    (next) => {
+      draftRef.current = next;
+      setDraft(next);
+      onDraftChange?.(next);
+    },
+    [onDraftChange]
+  );
 
   useEffect(() => {
     onZoomChange?.(zoom);
@@ -487,8 +115,10 @@ const Canvas = ({
     if (!zoomCommand) return;
     if (processedZoomCommandRef.current === zoomCommand.id) return;
     processedZoomCommandRef.current = zoomCommand.id;
+    // Zoom commands are imperative one-shot requests from the toolbar, so the
+    // effect acts as a command dispatcher (mirrors clearRequest/exportRequest).
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (zoomCommand.type === "reset") {
-      // eslint-disable-next-line
       setZoom(1);
       setPan({ x: 0, y: 0 });
       return;
@@ -517,6 +147,7 @@ const Canvas = ({
       return;
     }
     setZoom((current) => Math.min(3, Math.max(0.25, current * (zoomCommand.type === "in" ? 1.2 : 0.8))));
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [elements, zoomCommand]);
 
   useEffect(() => {
@@ -572,42 +203,33 @@ const Canvas = ({
 
   const commit = useCallback(
     (next) => {
-      setElements((current) => {
-        setHistory((state) => ({ past: [...state.past, current], future: [] }));
-        elementsRef.current = next;
-        return next;
-      });
+      const previous = elementsRef.current;
+      setHistory((state) => ({ past: [...state.past, previous], future: [] }));
+      elementsRef.current = next;
+      setElements(next);
       onElementsChange?.(next);
     },
     [onElementsChange]
   );
 
-  const undo = useCallback(
-    () =>
-      setHistory((state) => {
-        if (!state.past.length) return state;
-        const past = [...state.past];
-        const previous = past.pop();
-        elementsRef.current = previous;
-        setElements(previous);
-        onElementsChange?.(previous);
-        return { past, future: [elements, ...state.future] };
-      }),
-    [elements, onElementsChange]
-  );
+  const undo = useCallback(() => {
+    if (!history.past.length) return;
+    const past = [...history.past];
+    const previous = past.pop();
+    elementsRef.current = previous;
+    setElements(previous);
+    onElementsChange?.(previous);
+    setHistory({ past, future: [elements, ...history.future] });
+  }, [elements, history, onElementsChange]);
 
-  const redo = useCallback(
-    () =>
-      setHistory((state) => {
-        if (!state.future.length) return state;
-        const [next, ...future] = state.future;
-        elementsRef.current = next;
-        setElements(next);
-        onElementsChange?.(next);
-        return { past: [...state.past, elements], future };
-      }),
-    [elements, onElementsChange]
-  );
+  const redo = useCallback(() => {
+    if (!history.future.length) return;
+    const [next, ...future] = history.future;
+    elementsRef.current = next;
+    setElements(next);
+    onElementsChange?.(next);
+    setHistory({ past: [...history.past, elements], future });
+  }, [elements, history, onElementsChange]);
 
   useEffect(() => {
     onHistoryChange?.({ canUndo: history.past.length > 0, canRedo: history.future.length > 0, undo, redo });
@@ -621,14 +243,29 @@ const Canvas = ({
     context.setTransform(1, 0, 0, 1, 0, 0);
     context.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw grid
+    // Grid
     context.setTransform(dpr * zoom, 0, 0, dpr * zoom, dpr * pan.x, dpr * pan.y);
     drawBackgroundGrid(context, canvas, zoom, pan, gridStyle);
 
-    // Draw elements
-    [...elements, ...(draft ? [draft] : [])].forEach((element) => drawElement(context, element, forceRerender));
+    // Elements
+    elements.forEach((element) => drawElement(context, element, forceRerender));
 
-    // Selection bounding box
+    // Remote in-progress drafts (live drawing from other users)
+    Object.entries(remoteDrafts).forEach(([, { draft: remoteDraft, name, color: draftColor }]) => {
+      if (!remoteDraft) return;
+      drawElement(context, remoteDraft, forceRerender);
+      const bounds = getBounds(remoteDraft);
+      if (bounds && Number.isFinite(bounds.x) && Number.isFinite(bounds.y)) {
+        drawCollaborationTag(context, { x: bounds.x, y: bounds.y }, { name, color: draftColor, zoom });
+      }
+    });
+
+    // Local active draft (drawn on top of committed elements but under the UI)
+    if (draft) {
+      drawElement(context, draft, forceRerender);
+    }
+
+    // Selection bounding box with handles + rotate affordance
     const selected = elements.filter((element) => selectedIds.includes(element.id));
     if (selected.length) {
       const bounds = boundsFor(selected);
@@ -668,44 +305,8 @@ const Canvas = ({
     }
 
     // Remote cursors
-    Object.values(remoteCursors).forEach((cursor) => {
-      context.save();
-      context.translate(cursor.point.x, cursor.point.y);
-      const cursorColor = resolveCssColor(cursor.color || "var(--primary)");
-      const scale = 1 / zoom;
-      context.shadowColor = "rgba(15, 23, 42, 0.24)";
-      context.shadowBlur = 7 * scale;
-      context.fillStyle = cursorColor;
-      context.strokeStyle = "#0f172a";
-      context.lineJoin = "round";
-
-      // The reference cursor's tip is aligned with the shared pointer location.
-      context.scale(scale, scale);
-      context.translate(-5.5, -3.21);
-      context.lineWidth = 1.75;
-      const pointer = new Path2D(
-        "M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.87a.5.5 0 0 0 .35-.85L6.35 2.85a.5.5 0 0 0-.85.35Z"
-      );
-      context.fill(pointer);
-      context.stroke(pointer);
-      context.shadowBlur = 0;
-
-      context.font = "12px sans-serif";
-      const label = cursor.name || "Collaborator";
-      const labelWidth = context.measureText(label).width + 16;
-      const labelHeight = 22;
-      const labelX = 15;
-      const labelY = 25;
-      context.fillStyle = cursorColor;
-      context.beginPath();
-      context.roundRect(labelX, labelY, labelWidth, labelHeight, 7);
-      context.fill();
-      context.fillStyle = "#fff";
-      context.textBaseline = "middle";
-      context.fillText(label, labelX + 8, labelY + labelHeight / 2);
-      context.restore();
-    });
-  }, [draft, elements, forceRerender, gridStyle, pan, remoteCursors, selectedIds, zoom]);
+    Object.values(remoteCursors).forEach((cursor) => drawRemoteCursor(context, cursor, zoom));
+  }, [draft, elements, forceRerender, gridStyle, pan, remoteCursors, remoteDrafts, selectedIds, zoom]);
 
   const resizeCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -727,7 +328,7 @@ const Canvas = ({
     render();
   }, [render]);
 
-  // Keyboard shortcuts
+  // --- Keyboard shortcuts -------------------------------------------------------
   useEffect(() => {
     const shortcuts = {
       v: "Select",
@@ -763,21 +364,23 @@ const Canvas = ({
       }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
         event.preventDefault();
-        if (event.shiftKey) redo();
-        else undo();
+        if (!readOnly) {
+          if (event.shiftKey) redo();
+          else undo();
+        }
         return;
       }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "y") {
         event.preventDefault();
-        redo();
+        if (!readOnly) redo();
         return;
       }
       const next = shortcuts[event.key.toLowerCase()];
       if (next && !event.ctrlKey && !event.metaKey) onToolChange?.(next);
-      if ((event.key === "Delete" || event.key === "Backspace") && selectedIds.length) {
+      if ((event.key === "Delete" || event.key === "Backspace") && selectedIds.length && !readOnly) {
         event.preventDefault();
         setSelectedIds([]);
-        commit(elements.filter((element) => !selectedIds.includes(element.id)));
+        commit(elementsRef.current.filter((element) => !selectedIds.includes(element.id)));
       }
     };
 
@@ -794,78 +397,27 @@ const Canvas = ({
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [commit, elements, onOpenShortcuts, onToolChange, redo, selectedIds, undo]);
+  }, [commit, onOpenShortcuts, onToolChange, readOnly, redo, selectedIds, undo]);
 
-  const makeShape = (start, end, event) => {
-    let finish = end;
-    if (event.shiftKey && ["Rectangle", "Ellipse", "Sticky"].includes(tool)) {
-      const size = Math.max(Math.abs(end.x - start.x), Math.abs(end.y - start.y));
-      finish = { x: start.x + Math.sign(end.x - start.x || 1) * size, y: start.y + Math.sign(end.y - start.y || 1) * size };
-    }
-    if (event.shiftKey && ["Line", "Arrow"].includes(tool)) {
-      const dx = end.x - start.x;
-      const dy = end.y - start.y;
-      const angle = Math.atan2(dy, dx);
-      const snap = Math.round(angle / (Math.PI / 4)) * (Math.PI / 4);
-      const length = Math.hypot(dx, dy);
-      finish = { x: start.x + Math.cos(snap) * length, y: start.y + Math.sin(snap) * length };
-    }
-
-    const base = { id: createId(), strokeColor: color, fillColor, strokeWidth, strokeStyle, rotation: 0 };
-
-    if (tool === "Sticky") {
-      const rect = normalizeRect(start, finish);
-      const strokeColorMap = {
-        "#fef08a": "#eab308",
-        "#bfdbfe": "#3b82f6",
-        "#bbf7d0": "#22c55e",
-        "#fbcfe8": "#ec4899",
-        "#e7e5e4": "#57534e",
-        "#fed7aa": "#f97316",
-      };
-      return {
-        ...base,
-        type: "sticky",
-        x: snapVal(rect.x, snapToGrid),
-        y: snapVal(rect.y, snapToGrid),
-        width: Math.max(140, rect.width || 180),
-        height: Math.max(120, rect.height || 140),
-        fillColor: stickyColor,
-        strokeColor: strokeColorMap[stickyColor] || "#eab308",
-        strokeWidth: 1.5,
-        text: "",
-        fontSize: 16,
-      };
-    }
-
-    if (tool === "Rectangle" || tool === "Ellipse") {
-      const rect = normalizeRect(start, finish);
-      return {
-        ...base,
-        type: tool.toLowerCase(),
-        x: snapVal(rect.x, snapToGrid),
-        y: snapVal(rect.y, snapToGrid),
-        width: snapVal(rect.width, snapToGrid),
-        height: snapVal(rect.height, snapToGrid),
-      };
-    }
-
-    if (connectionTools.includes(tool)) {
-      const snappedStart = snapToShape(start, elements, zoom);
-      const snappedEnd = snapToShape(finish, elements, zoom);
-      return {
-        ...base,
-        type: tool.toLowerCase(),
-        points: [snappedStart.point, snappedEnd.point],
-        startConnection: snappedStart.elementId,
-        endConnection: snappedEnd.elementId,
-        startConnectionAnchor: snappedStart.anchorIndex,
-        endConnectionAnchor: snappedEnd.anchorIndex,
-      };
-    }
-
-    return { ...base, type: tool.toLowerCase(), points: [start, finish] };
-  };
+  // --- Interaction handlers ------------------------------------------------------
+  const makeShape = useCallback(
+    (start, end, event) =>
+      createElement({
+        tool,
+        start,
+        end,
+        event,
+        color,
+        fillColor,
+        strokeWidth,
+        strokeStyle,
+        stickyColor,
+        snapToGrid,
+        elements: elementsRef.current,
+        zoom,
+      }),
+    [color, fillColor, snapToGrid, stickyColor, strokeStyle, strokeWidth, tool, zoom]
+  );
 
   const updateCanvasCursor = (event) => {
     if (isPanning || spacePressedRef.current) return setCanvasCursor("grab");
@@ -879,14 +431,31 @@ const Canvas = ({
       const bounds = getBounds(selected[0]);
       if (nearPoint(point, [bounds.x + bounds.width / 2, bounds.y - 28], 10 / zoom)) return setCanvasCursor("grab");
       const handle = handlePoints(bounds).findIndex((target) => nearPoint(point, target, 10 / zoom));
-      if (handle >= 0) {
-        const resizeCursors = ["nwse-resize", "ns-resize", "nesw-resize", "ew-resize", "ew-resize", "nesw-resize", "ns-resize", "nwse-resize"];
-        return setCanvasCursor(resizeCursors[handle]);
-      }
+      if (handle >= 0) return setCanvasCursor(RESIZE_CURSORS[handle]);
     }
     const hit = [...elements].reverse().find((element) => containsPoint(getBounds(element), point));
     if (hit?.type === "text" || hit?.type === "sticky") return setCanvasCursor("text");
     return setCanvasCursor(hit ? "move" : "default");
+  };
+
+  const eraseAt = (point) => {
+    const interaction = interactionRef.current;
+    if (!interaction || interaction.type !== "erase") return;
+
+    const current = elementsRef.current;
+    const hits = current.filter(
+      (element) => !interaction.erasedIds.includes(element.id) && containsPoint(getBounds(element), point, strokeWidth * 2)
+    );
+    if (!hits.length) return;
+
+    const erasedIds = new Set(hits.map((element) => element.id));
+    interaction.erasedIds.push(...erasedIds);
+    const next = current.filter((element) => !erasedIds.has(element.id));
+    elementsRef.current = next;
+    setElements(next);
+    setHistory((state) => ({ past: [...state.past, current], future: [] }));
+    setSelectedIds((ids) => ids.filter((id) => !erasedIds.has(id)));
+    onElementsChange?.(next);
   };
 
   const startInteraction = (event) => {
@@ -908,17 +477,17 @@ const Canvas = ({
       return;
     }
 
-    if (tool === "Sticky") {
+    if (isShapeTool(tool)) {
       event.currentTarget.setPointerCapture?.(event.pointerId);
       interactionRef.current = { type: "shape", start: point };
-      setDraft(makeShape(point, point, event));
+      publishDraft(makeShape(point, point, event));
       return;
     }
 
     if (tool === "Pen") {
       event.currentTarget.setPointerCapture?.(event.pointerId);
       interactionRef.current = { type: "draw" };
-      setDraft({
+      publishDraft({
         id: createId(),
         type: "freehand",
         points: [point],
@@ -928,13 +497,6 @@ const Canvas = ({
         strokeStyle,
         rotation: 0,
       });
-      return;
-    }
-
-    if (shapeTools.includes(tool)) {
-      event.currentTarget.setPointerCapture?.(event.pointerId);
-      interactionRef.current = { type: "shape", start: point };
-      setDraft(makeShape(point, point, event));
       return;
     }
 
@@ -948,7 +510,6 @@ const Canvas = ({
     if (tool !== "Select") return;
 
     const hitElement = [...elements].reverse().find((element) => containsPoint(getBounds(element), point));
-
     const selected = elements.filter((element) => selectedIds.includes(element.id));
     if (selected.length === 1) {
       const bounds = getBounds(selected[0]);
@@ -1031,28 +592,6 @@ const Canvas = ({
     }
   };
 
-  const eraseAt = (point) => {
-    const interaction = interactionRef.current;
-    if (!interaction || interaction.type !== "erase") return;
-
-    const current = elementsRef.current;
-    const hits = current.filter(
-      (element) =>
-        !interaction.erasedIds.includes(element.id) &&
-        containsPoint(getBounds(element), point, strokeWidth * 2)
-    );
-    if (!hits.length) return;
-
-    const erasedIds = new Set(hits.map((element) => element.id));
-    interaction.erasedIds.push(...erasedIds);
-    const next = current.filter((element) => !erasedIds.has(element.id));
-    elementsRef.current = next;
-    setElements(next);
-    setHistory((state) => ({ past: [...state.past, current], future: [] }));
-    setSelectedIds((ids) => ids.filter((id) => !erasedIds.has(id)));
-    onElementsChange?.(next);
-  };
-
   const moveInteraction = (event) => {
     updateCanvasCursor(event);
     const interaction = interactionRef.current;
@@ -1066,9 +605,12 @@ const Canvas = ({
         y: interaction.origin.y + currentClient.y - interaction.startClient.y,
       });
     } else if (interaction.type === "draw") {
-      setDraft((current) => current && { ...current, points: [...current.points, point] });
+      if (draftRef.current) {
+        const next = { ...draftRef.current, points: [...draftRef.current.points, point] };
+        publishDraft(next);
+      }
     } else if (interaction.type === "shape") {
-      setDraft(makeShape(interaction.start, point, event));
+      publishDraft(makeShape(interaction.start, point, event));
     } else if (interaction.type === "erase") {
       eraseAt(point);
     } else if (interaction.type === "move") {
@@ -1131,29 +673,50 @@ const Canvas = ({
     const interaction = interactionRef.current;
     if (!interaction) {
       onInteractionActiveChange?.(false);
+      publishDraft(null);
       return;
     }
 
-    if (["draw", "shape"].includes(interaction.type) && draft) {
-      if (draft.type === "sticky") {
+    const pendingRemote = pendingRemoteElementsRef.current;
+    pendingRemoteElementsRef.current = null;
+    const baseElements = pendingRemote || elementsRef.current;
+
+    if (["draw", "shape"].includes(interaction.type) && draftRef.current) {
+      const finishedDraft = draftRef.current;
+      if (finishedDraft.type === "sticky") {
         setEditingText({
-          id: draft.id,
-          x: draft.x,
-          y: draft.y,
+          id: finishedDraft.id,
+          x: finishedDraft.x,
+          y: finishedDraft.y,
           value: "",
-          fontSize: draft.fontSize || 16,
+          fontSize: finishedDraft.fontSize || 16,
           type: "sticky",
-          width: draft.width,
-          height: draft.height,
+          width: finishedDraft.width,
+          height: finishedDraft.height,
         });
       }
-      commit([...elements, draft]);
+      const nextElements = [...baseElements.filter((element) => element.id !== finishedDraft.id), finishedDraft];
+      commit(nextElements);
+    } else if (["move", "resize", "rotate"].includes(interaction.type)) {
+      const localModifiedMap = new Map(elementsRef.current.map((element) => [element.id, element]));
+      const nextElements = baseElements.map((element) => localModifiedMap.get(element.id) || element);
+      commit(nextElements);
+    } else if (interaction.type === "erase") {
+      const erasedSet = new Set(interaction.erasedIds || []);
+      const nextElements = baseElements.filter((element) => !erasedSet.has(element.id));
+      if (pendingRemote) {
+        elementsRef.current = nextElements;
+        setElements(nextElements);
+      }
+    } else if (pendingRemote) {
+      elementsRef.current = pendingRemote;
+      setElements(pendingRemote);
     }
-    if (["move", "resize", "rotate"].includes(interaction.type)) commit(elementsRef.current);
+
     if (interaction.type === "marquee" && interaction.current) {
       const selection = normalizeRect(interaction.start, interaction.current);
       setSelectedIds(
-        elements
+        baseElements
           .filter((element) => {
             const bounds = getBounds(element);
             return (
@@ -1170,49 +733,34 @@ const Canvas = ({
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
     setIsPanning(false);
-    setDraft(null);
+    publishDraft(null);
     interactionRef.current = null;
-    if (pendingRemoteElementsRef.current) {
-      const pendingElements = pendingRemoteElementsRef.current;
-      pendingRemoteElementsRef.current = null;
-      elementsRef.current = pendingElements;
-      setElements(pendingElements);
-    }
     onInteractionActiveChange?.(false);
   };
 
   const commitText = () => {
-    if (!editingText) return;
-
-    if (editingText.id) {
+    if (editingText?.id) {
       commit(
-        elements.map((el) => {
-          if (el.id !== editingText.id) return el;
-          if (el.type === "sticky") return { ...el, text: editingText.value };
-          return { ...el, text: editingText.value, ...textDimensions(editingText.value, el.fontSize) };
+        elementsRef.current.map((element) => {
+          if (element.id !== editingText.id) return element;
+          if (element.type === "sticky") return { ...element, text: editingText.value };
+          return { ...element, text: editingText.value, ...textDimensions(editingText.value, element.fontSize) };
         })
       );
-    } else if (editingText.value.trim()) {
-      const fontSize = editingText.fontSize || 24;
+    } else if (editingText?.value.trim()) {
       commit([
-        ...elements,
-        {
-          id: createId(),
-          type: "text",
+        ...elementsRef.current,
+        createTextElement({
           x: editingText.x,
-          y: editingText.y + fontSize,
-          text: editingText.value,
-          fontSize,
-          ...textDimensions(editingText.value, fontSize),
-          strokeColor: color,
-          fillColor: "transparent",
-          strokeWidth: 1,
-          strokeStyle: "solid",
-          rotation: 0,
-        },
+          y: editingText.y,
+          value: editingText.value,
+          fontSize: editingText.fontSize,
+          color,
+        }),
       ]);
     }
     setEditingText(null);
+    publishDraft(null);
   };
 
   const handleDragOver = (event) => {
@@ -1235,9 +783,8 @@ const Canvas = ({
         const aspect = img.width / Math.max(1, img.height);
         const defaultWidth = Math.min(400, Math.max(150, img.width));
         const defaultHeight = defaultWidth / aspect;
-
         commit([
-          ...elements,
+          ...elementsRef.current,
           {
             id: createId(),
             type: "image",
@@ -1248,6 +795,8 @@ const Canvas = ({
             src,
             rotation: 0,
             strokeColor: "transparent",
+            strokeStyle: "solid",
+            strokeWidth: 0,
           },
         ]);
       };
@@ -1261,8 +810,8 @@ const Canvas = ({
       event.stopPropagation();
       const canvas = canvasRef.current;
       if (!canvas) return;
-      const position = getCanvasPosition(event, canvas);
       if (event.ctrlKey || event.metaKey) {
+        const position = getCanvasPosition(event, canvas);
         const worldPoint = getPoint(event, canvas, zoom, pan);
         const nextZoom = Math.min(3, Math.max(0.25, zoom * Math.exp(-event.deltaY * 0.01)));
         setZoom(nextZoom);
@@ -1298,7 +847,14 @@ const Canvas = ({
         <textarea
           autoFocus
           value={editingText.value}
-          onChange={(event) => setEditingText((current) => ({ ...current, value: event.target.value }))}
+          onChange={(event) => {
+            const nextVal = event.target.value;
+            const updated = { ...editingText, value: nextVal };
+            setEditingText(updated);
+            if (updated.type === "sticky") {
+              onDraftChange?.(stickyLivePreview(updated));
+            }
+          }}
           onBlur={commitText}
           onPointerDown={(event) => event.stopPropagation()}
           onKeyDown={(event) => {

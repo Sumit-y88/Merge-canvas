@@ -1,0 +1,12 @@
+{
+  "name": "mergecanvas",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "node ops/run-services.mjs dev",
+    "start": "node ops/run-services.mjs start",
+    "build": "npm run build --prefix client",
+    "lint": "npm run lint --prefix client",
+    "test": "npm run test --prefix client && npm run test --prefix server"
+  }
+}
