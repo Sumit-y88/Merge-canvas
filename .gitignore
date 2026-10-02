@@ -1,8 +1,38 @@
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Testing
+/coverage
+
+# Next.js build output
+.next/
+out/
+dist/
+
+# Production
+build
+
+# Misc
+.DS_Store
+*.pem
+
+# Local env files
+.env
+.env*.local
 server/.env
 client/.env
 server/.env.production
 client/.env.production
-node_modules/
-dist/
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Ops & Backups
 ops/certs/
 backups/
