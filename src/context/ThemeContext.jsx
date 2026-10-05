@@ -9,23 +9,24 @@ export const ThemeContext = createContext({
 });
 
 export const ThemeProvider = ({ children }) => {
-  const [theme, setThemeState] = useState("dark");
-
-  useEffect(() => {
+  const [theme, setThemeState] = useState(() => {
+    if (typeof window === "undefined") return "dark";
     try {
       const savedTheme = window.localStorage.getItem("mergecanvas-theme");
       if (savedTheme === "dark" || savedTheme === "light") {
-        setThemeState(savedTheme);
-      } else if (
+        return savedTheme;
+      }
+      if (
         window.matchMedia &&
         window.matchMedia("(prefers-color-scheme: light)").matches
       ) {
-        setThemeState("light");
+        return "light";
       }
     } catch {
       // LocalStorage access may fail in restricted browser modes
     }
-  }, []);
+    return "dark";
+  });
 
   useEffect(() => {
     const root = document.documentElement;

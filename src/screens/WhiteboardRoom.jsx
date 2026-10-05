@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Share2, Copy, Check, Settings, Trash2, UserMinus, LogOut, RefreshCw } from "lucide-react";
 import { getRoomById, saveCanvas, updateCollaboratorRole, updateRoomSettings, regenerateInviteCode, removeCollaborator, leaveRoom, deleteRoom } from "../api/roomApi";
 import { connectRoomRealtime } from "../api/pusher";
-import api, { setAuthToken } from "../api/api";
+import api from "../api/api";
 import Button from "../components/ui/Button";
 import Avatar from "../components/ui/Avatar";
 import Badge from "../components/ui/Badge";
@@ -71,7 +71,6 @@ const WhiteboardRoom = () => {
   const [remoteCursors, setRemoteCursors] = useState({});
   const [remoteDrafts, setRemoteDrafts] = useState({});
   const [connectionState, setConnectionState] = useState("connecting");
-  const refreshingSocketRef = useRef(false);
   const reconciliationInFlightRef = useRef(false);
   const draftThrottleRef = useRef(null);
 
@@ -105,7 +104,7 @@ const WhiteboardRoom = () => {
       onConnectionStateChange: (state) => {
         setConnectionState(state);
       },
-      onSubscribed: (members) => {
+      onSubscribed: () => {
         roomJoinedRef.current = true;
         setConnectionState("connected");
         if (yDocRef.current) {
@@ -340,7 +339,7 @@ const WhiteboardRoom = () => {
     };
     const timer = setInterval(reconcileCanvas, 30_000);
     return () => clearInterval(timer);
-  }, [id, room]);
+  }, [id, room, connectionState]);
 
   const handleCopyCode = () => {
     if (room?.inviteCode) {

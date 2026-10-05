@@ -5,34 +5,30 @@ on:
   pull_request:
 
 jobs:
-  client:
+  build-and-lint:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: client
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: client/package-lock.json
-      - run: npm ci
-      - run: npm test
-      - run: npm run lint
-      - run: npm run build
 
-  server:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: server
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: server/package-lock.json
-      - run: npm ci
-      - run: npm test
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Build Next.js Application
+        run: npm run build
+        env:
+          NEXT_PUBLIC_PUSHER_KEY: ${{ secrets.NEXT_PUBLIC_PUSHER_KEY || 'dummy_key' }}
+          NEXT_PUBLIC_PUSHER_CLUSTER: ${{ secrets.NEXT_PUBLIC_PUSHER_CLUSTER || 'mt1' }}
+          PUSHER_APP_ID: ${{ secrets.PUSHER_APP_ID || 'dummy_id' }}
+          PUSHER_SECRET: ${{ secrets.PUSHER_SECRET || 'dummy_secret' }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI || 'mongodb://localhost:27017/test' }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET || 'dummy_jwt_secret_for_ci_build' }}
