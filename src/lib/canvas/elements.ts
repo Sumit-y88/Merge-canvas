@@ -6,7 +6,7 @@ import {
   snapToShape,
   textDimensions,
   connectionTools,
-} from "./geometry.js";
+} from "./geometry";
 
 const STICKY_STROKE_COLORS = {
   "#fef08a": "#eab308",

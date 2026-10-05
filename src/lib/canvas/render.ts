@@ -1,5 +1,5 @@
 // Canvas 2D painting. Functions take the drawing context and mutate it only.
-import { getBounds } from "./geometry.js";
+import { getBounds } from "./geometry";
 
 const imageCache = new Map();
 

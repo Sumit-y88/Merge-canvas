@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import Room from "../models/Room.model.js";
+import Room from "../models/Room.model";
 
 const generateInviteCode = () => {
     return crypto.randomBytes(6).toString("hex");

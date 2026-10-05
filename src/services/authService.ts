@@ -1,7 +1,7 @@
-    import User from "../models/User.model.js";
-    import { generateAccessToken, generateRefreshToken } from "../utils/generateToken.js";
-    import RefreshToken from "../models/RefreshToken.model.js";
-    import { hashToken } from "../utils/tokenUtils.js";
+    import User from "../models/User.model";
+    import { generateAccessToken, generateRefreshToken } from "../utils/generateToken";
+    import RefreshToken from "../models/RefreshToken.model";
+    import { hashToken } from "../utils/tokenUtils";
     import { OAuth2Client } from "google-auth-library";
 
     const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);

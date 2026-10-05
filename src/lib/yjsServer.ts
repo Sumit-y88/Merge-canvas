@@ -1,5 +1,5 @@
 import * as Y from "yjs";
-import Room from "../models/Room.model.js";
+import Room from "../models/Room.model";
 
 const elementsMap = (doc) => doc.getMap("elements");
 const orderArray = (doc) => doc.getArray("elementOrder");

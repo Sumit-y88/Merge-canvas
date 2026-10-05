@@ -9,6 +9,7 @@ Draw, sketch, and brainstorm together — live cursors, CRDT-based sync, and per
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](#license)
 [![Node](https://img.shields.io/badge/node-20%2B-339933?logo=node.js&logoColor=white)](#tech-stack)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js&logoColor=white)](#tech-stack)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript&logoColor=white)](#tech-stack)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](#tech-stack)
 
 [**Live App on Vercel**](https://merge-canvas.vercel.app/) · [Report a Bug](https://github.com/Sumit-y88/Merge-canvas/issues) · [Request a Feature](https://github.com/Sumit-y88/Merge-canvas/issues)
@@ -118,19 +119,20 @@ Merge-canvas/
 │   ├── login/                   # Login screen
 │   ├── signup/                  # Signup screen
 │   ├── profile/                 # Profile screen
-│   ├── layout.jsx               # Root layout
-│   └── page.jsx                 # Landing page
+│   ├── layout.tsx               # Root layout
+│   └── page.tsx                 # Landing page
 ├── src/
-│   ├── api/                     # Frontend Axios client + Pusher client
-│   ├── components/              # Canvas, Toolbar, Modals, UI primitives
-│   ├── context/                 # AuthContext & ThemeContext
-│   ├── hooks/                   # Custom React hooks
-│   ├── lib/                     # Canvas geometry, Yjs bridge, db connection, pusherServer
-│   ├── models/                  # Mongoose models (User, Room, RefreshToken, TokenBlacklist)
-│   ├── services/                # Business logic services (authService, RoomService)
-│   └── utils/                   # Token utils, payload validation
+│   ├── api/                     # Frontend Axios client + Pusher client (.ts)
+│   ├── components/              # Canvas, Toolbar, Modals, UI primitives (.tsx)
+│   ├── context/                 # AuthContext & ThemeContext (.tsx)
+│   ├── hooks/                   # Custom React hooks (.ts)
+│   ├── lib/                     # Canvas geometry, Yjs bridge, db connection, pusherServer (.ts)
+│   ├── models/                  # Mongoose models (.ts)
+│   ├── services/                # Business logic services (.ts)
+│   └── utils/                   # Token utils, payload validation (.ts)
 ├── public/                      # Static assets
 ├── .env.example                 # Unified environment variable template
+├── tsconfig.json                # TypeScript configuration
 ├── next.config.mjs              # Next.js configuration
 ├── tailwind.config.js           # Tailwind CSS configuration
 └── package.json                 # Single package configuration

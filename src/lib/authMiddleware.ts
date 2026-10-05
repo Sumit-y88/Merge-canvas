@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
-import connectDB from "./db.js";
-import User from "../models/User.model.js";
-import TokenBlacklist from "../models/TokenBlacklist.model.js";
+import connectDB from "./db";
+import User from "../models/User.model";
+import TokenBlacklist from "../models/TokenBlacklist.model";
 
 export const getAuthenticatedUser = async (request) => {
   await connectDB();

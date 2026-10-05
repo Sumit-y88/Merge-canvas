@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { refreshCookieName } from "../utils/tokenUtils.js";
+import { refreshCookieName } from "../utils/tokenUtils";
 
 export const getCookieOptions = () => ({
   httpOnly: true,
