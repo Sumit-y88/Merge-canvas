@@ -1,15 +1,27 @@
 "use client";
 
-import { createContext, useEffect, useState } from "react";
+import { createContext, useEffect, useState, type ReactNode } from "react";
 
-export const ThemeContext = createContext({
+export type Theme = "light" | "dark";
+
+export interface ThemeContextType {
+  theme: Theme;
+  toggleTheme: () => void;
+  setTheme: (newTheme: Theme) => void;
+}
+
+export const ThemeContext = createContext<ThemeContextType>({
   theme: "dark",
   toggleTheme: () => {},
   setTheme: () => {},
 });
 
-export const ThemeProvider = ({ children }) => {
-  const [theme, setThemeState] = useState(() => {
+export interface ThemeProviderProps {
+  children: ReactNode;
+}
+
+export const ThemeProvider = ({ children }: ThemeProviderProps) => {
+  const [theme, setThemeState] = useState<Theme>(() => {
     if (typeof window === "undefined") return "dark";
     try {
       const savedTheme = window.localStorage.getItem("mergecanvas-theme");
@@ -43,7 +55,7 @@ export const ThemeProvider = ({ children }) => {
     setThemeState((prev) => (prev === "dark" ? "light" : "dark"));
   };
 
-  const setTheme = (newTheme) => {
+  const setTheme = (newTheme: Theme) => {
     if (newTheme === "dark" || newTheme === "light") {
       setThemeState(newTheme);
     }

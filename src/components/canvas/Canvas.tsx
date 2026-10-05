@@ -50,6 +50,33 @@ const stickyLivePreview = ({ id, x, y, width, height, text, fontSize, fillColor 
   rotation: 0,
 });
 
+export interface CanvasProps {
+  tool?: string;
+  color?: string;
+  fillColor?: string;
+  strokeWidth?: number;
+  strokeStyle?: string;
+  stickyColor?: string;
+  gridStyle?: string;
+  snapToGrid?: boolean;
+  initialElements?: any[];
+  remoteElements?: any[] | null;
+  remoteCursors?: Record<string, any>;
+  remoteDrafts?: Record<string, any>;
+  readOnly?: boolean;
+  clearRequest?: number;
+  exportRequest?: number;
+  zoomCommand?: any;
+  onZoomChange?: (zoom: number) => void;
+  onElementsChange?: (elements: any[]) => void;
+  onDraftChange?: (draft: any) => void;
+  onInteractionActiveChange?: (active: boolean) => void;
+  onCursorMove?: (point: { x: number; y: number }) => void;
+  onToolChange?: (tool: string) => void;
+  onHistoryChange?: (controls: any) => void;
+  onOpenShortcuts?: () => void;
+}
+
 const Canvas = ({
   tool = "Select",
   color = "var(--primary)",
@@ -75,7 +102,7 @@ const Canvas = ({
   onToolChange,
   onHistoryChange,
   onOpenShortcuts,
-}) => {
+}: CanvasProps) => {
   const canvasRef = useRef(null);
   const interactionRef = useRef(null);
   const pendingRemoteElementsRef = useRef(null);
@@ -251,7 +278,10 @@ const Canvas = ({
     elements.forEach((element) => drawElement(context, element, forceRerender));
 
     // Remote in-progress drafts (live drawing from other users)
-    Object.entries(remoteDrafts).forEach(([, { draft: remoteDraft, name, color: draftColor }]) => {
+    Object.entries(remoteDrafts).forEach(([, data]: [string, any]) => {
+      const remoteDraft = data?.draft;
+      const name = data?.name;
+      const draftColor = data?.color;
       if (!remoteDraft) return;
       drawElement(context, remoteDraft, forceRerender);
       const bounds = getBounds(remoteDraft);
@@ -594,6 +624,7 @@ const Canvas = ({
 
   const moveInteraction = (event) => {
     updateCanvasCursor(event);
+    onCursorMove?.(getPoint(event, canvasRef.current, zoom, pan));
     const interaction = interactionRef.current;
     if (!interaction) return;
     const point = getPoint(event, canvasRef.current, zoom, pan);
@@ -776,6 +807,7 @@ const Canvas = ({
     const reader = new FileReader();
     reader.onload = () => {
       const src = reader.result;
+      if (typeof src !== "string") return;
       const img = new Image();
       img.src = src;
       img.onload = () => {

@@ -123,7 +123,13 @@ const templates = [
   },
 ];
 
-const TemplatesModal = ({ isOpen, onClose, onSelectTemplate }) => (
+export interface TemplatesModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSelectTemplate: (elements: any[], overwrite: boolean) => void;
+}
+
+const TemplatesModal = ({ isOpen, onClose, onSelectTemplate }: TemplatesModalProps) => (
   <Modal isOpen={isOpen} onClose={onClose} title="Architectural Templates Catalog" size="xl">
     <div className="p-5 space-y-4 max-h-[80vh] overflow-y-auto">
       <div className="flex items-center justify-between pb-2 border-b border-border/50 text-xs text-muted-foreground">

@@ -15,14 +15,14 @@ const Signup = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [apiError, setApiError] = useState("");
   const [loading, setLoading] = useState(false);
   const { saveAuth } = useAuth();
   const router = useRouter();
 
-  const validate = () => {
-    const errs = {};
+  const validate = (): Record<string, string> => {
+    const errs: Record<string, string> = {};
     if (!name.trim()) errs.name = "Full name is required";
     if (!email.trim()) errs.email = "Work email is required";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.email = "Invalid email format";
@@ -31,7 +31,7 @@ const Signup = () => {
     return errs;
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setApiError("");
     const errs = validate();
@@ -43,7 +43,7 @@ const Signup = () => {
       const data = await signup({ name, email, password });
       saveAuth(data);
       router.push("/dashboard");
-    } catch (err) {
+    } catch (err: any) {
       const msg = err.response?.data?.error || err.response?.data?.message || "Signup failed";
       setApiError(msg);
     } finally {

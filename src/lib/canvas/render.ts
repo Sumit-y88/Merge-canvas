@@ -284,7 +284,10 @@ export const drawElement = (context, element, onLoaded) => {
   drawElementPath(context, element, false, onLoaded);
 };
 
-export const drawRemoteCursor = (context, cursor, zoom) => {
+export const drawRemoteCursor = (context: any, cursor: any, zoom: number) => {
+  if (!cursor?.point || typeof cursor.point.x !== "number" || typeof cursor.point.y !== "number") return;
+  if (!Number.isFinite(cursor.point.x) || !Number.isFinite(cursor.point.y)) return;
+
   context.save();
   context.translate(cursor.point.x, cursor.point.y);
   const cursorColor = resolveCssColor(cursor.color || "var(--primary)");
@@ -308,13 +311,17 @@ export const drawRemoteCursor = (context, cursor, zoom) => {
 
   context.font = "12px sans-serif";
   const label = cursor.name || "Collaborator";
-  const labelWidth = context.measureText(label).width + 16;
+  const labelWidth = Math.max(20, context.measureText(label).width + 16);
   const labelHeight = 22;
   const labelX = 15;
   const labelY = 25;
   context.fillStyle = cursorColor;
   context.beginPath();
-  context.roundRect(labelX, labelY, labelWidth, labelHeight, 7);
+  if (typeof context.roundRect === "function") {
+    context.roundRect(labelX, labelY, labelWidth, labelHeight, 6);
+  } else {
+    context.rect(labelX, labelY, labelWidth, labelHeight);
+  }
   context.fill();
   context.fillStyle = "#fff";
   context.textBaseline = "middle";

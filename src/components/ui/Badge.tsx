@@ -1,6 +1,14 @@
+import { type HTMLAttributes, type ReactNode } from "react";
 import { cn } from "../../lib/utils";
 
-const variantClasses = {
+export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
+  variant?: "default" | "secondary" | "success" | "warning" | "danger" | "outline";
+  dot?: boolean;
+  pulse?: boolean;
+  children?: ReactNode;
+}
+
+const variantClasses: Record<string, string> = {
   default: "bg-primary/15 text-primary border-primary/20",
   secondary: "bg-secondary text-secondary-foreground border-border",
   success: "bg-success/15 text-success border-success/20",
@@ -9,7 +17,7 @@ const variantClasses = {
   outline: "bg-transparent text-foreground border-border",
 };
 
-const dotColorClasses = {
+const dotColorClasses: Record<string, string> = {
   default: "bg-primary",
   secondary: "bg-muted-foreground",
   success: "bg-success",
@@ -25,7 +33,7 @@ export const Badge = ({
   pulse = false,
   className,
   ...props
-}) => {
+}: BadgeProps) => {
   return (
     <span
       className={cn(

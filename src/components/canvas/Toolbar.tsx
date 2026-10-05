@@ -72,6 +72,24 @@ export const resolveColorInput = (color) => {
   return `#${rgb.map((value) => Math.round((value + m) * 255).toString(16).padStart(2, "0")).join("")}`;
 };
 
+export interface HistoryControls {
+  canUndo?: boolean;
+  undo?: () => void;
+  canRedo?: boolean;
+  redo?: () => void;
+  [key: string]: any;
+}
+
+export interface SideToolbarProps {
+  tool: string;
+  setTool: (tool: string) => void;
+  onImageUpload?: () => void;
+  onOpenTemplates?: () => void;
+  history?: HistoryControls;
+  onClear?: () => void;
+  disabled?: boolean;
+}
+
 /**
  * SideToolbar: Physical Drafting Kit dock
  */
@@ -83,7 +101,7 @@ export const SideToolbar = ({
   history = {},
   onClear,
   disabled = false,
-}) => (
+}: SideToolbarProps) => (
   <nav
     aria-label="Drafting tools"
     className="rounded-DEFAULT p-1.5 flex flex-col items-center gap-1.5 bg-surface border-[2px] border-foreground shadow-stamp-lg transition-all"
@@ -201,6 +219,32 @@ export const SideToolbar = ({
   </nav>
 );
 
+export interface BottomToolbarProps {
+  tool: string;
+  color: string;
+  setColor: (color: string) => void;
+  fillColor: string;
+  setFillColor: (color: string) => void;
+  strokeWidth: number;
+  setStrokeWidth: (width: number) => void;
+  strokeStyle: string;
+  setStrokeStyle: (style: string) => void;
+  stickyColor: string;
+  setStickyColor: (color: string) => void;
+  gridStyle: string;
+  setGridStyle: (style: string) => void;
+  snapToGrid: boolean;
+  setSnapToGrid: (snap: boolean | ((prev: boolean) => boolean)) => void;
+  zoom: number;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onZoomReset: () => void;
+  onZoomFit: () => void;
+  onExport: () => void;
+  onOpenShortcuts: () => void;
+  disabled?: boolean;
+}
+
 /**
  * BottomToolbar: Physical Workshop Toolbelt dock
  */
@@ -228,7 +272,7 @@ export const BottomToolbar = ({
   onExport,
   onOpenShortcuts,
   disabled = false,
-}) => {
+}: BottomToolbarProps) => {
   const isSticky = tool === "Sticky";
   const isShape = ["Rectangle", "Ellipse"].includes(tool);
   const isDrawOrLine = ["Pen", "Line", "Arrow", "Rectangle", "Ellipse", "Text"].includes(tool);
@@ -310,9 +354,7 @@ export const BottomToolbar = ({
             type="button"
             disabled={disabled}
             onClick={() =>
-              setFillColor((current) =>
-                current === "transparent" ? color || "#1C1A17" : "transparent"
-              )
+              setFillColor(fillColor === "transparent" ? color || "#1C1A17" : "transparent")
             }
             title={fillColor === "transparent" ? "Enable solid fill" : "Clear fill"}
             className="flex items-center gap-1 px-2 py-1 text-xs font-label font-semibold rounded-DEFAULT border border-foreground/60 bg-surface hover:bg-secondary transition-colors"

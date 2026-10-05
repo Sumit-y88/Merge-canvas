@@ -3,9 +3,15 @@
 
 import Link from "next/link";
 import { GitMerge, ArrowLeft, MousePointer2 } from "lucide-react";
+import { type ReactNode } from "react";
 import ThemeToggle from "./ThemeToggle";
 
-const AuthPageShell = ({ children, activeTab = "login" }) => (
+export interface AuthPageShellProps {
+  children: ReactNode;
+  activeTab?: "login" | "signup";
+}
+
+const AuthPageShell = ({ children, activeTab = "login" }: AuthPageShellProps) => (
   <main className="relative min-h-screen flex flex-col justify-between overflow-x-hidden bg-background text-foreground font-body select-none">
     {/* Background Dot Matrix */}
     <div className="absolute inset-0 bg-dot-matrix opacity-60 pointer-events-none" />

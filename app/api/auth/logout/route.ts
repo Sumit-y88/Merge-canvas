@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import jwt from "jsonwebtoken";
 import connectDB from "@/src/lib/db";
 import { revokeRefreshToken } from "@/src/services/authService";
@@ -6,7 +6,7 @@ import { clearAuthCookie } from "@/src/lib/authResponse";
 import { refreshCookieName, parseCookies } from "@/src/utils/tokenUtils";
 import TokenBlacklist from "@/src/models/TokenBlacklist.model";
 
-export async function POST(request) {
+export async function POST(request: NextRequest) {
   try {
     await connectDB();
     const token =
@@ -24,7 +24,7 @@ export async function POST(request) {
 
     if (accessToken) {
       try {
-        const decoded = jwt.decode(accessToken);
+        const decoded = jwt.decode(accessToken) as { jti?: string; exp?: number } | null;
         if (decoded?.jti && decoded.exp) {
           await TokenBlacklist.updateOne(
             { jti: decoded.jti },

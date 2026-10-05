@@ -1,8 +1,16 @@
-import { forwardRef } from "react";
+import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { Loader2 } from "lucide-react";
 import { cn } from "../../lib/utils";
 
-const variantClasses = {
+export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: "primary" | "secondary" | "outline" | "ghost" | "glass" | "danger";
+  size?: "sm" | "md" | "lg" | "icon";
+  isLoading?: boolean;
+  leftIcon?: ReactNode;
+  rightIcon?: ReactNode;
+}
+
+const variantClasses: Record<string, string> = {
   primary:
     "bg-primary hover:bg-primary-hover text-primary-foreground border-[1.5px] border-foreground shadow-stamp active:translate-x-[1.5px] active:translate-y-[1.5px] active:shadow-none font-label font-bold",
   secondary:
@@ -17,14 +25,14 @@ const variantClasses = {
     "bg-destructive text-destructive-foreground hover:bg-destructive/90 border-[1.5px] border-foreground shadow-stamp active:translate-x-[1.5px] active:translate-y-[1.5px] active:shadow-none font-label font-bold",
 };
 
-const sizeClasses = {
+const sizeClasses: Record<string, string> = {
   sm: "h-8 px-3 text-xs rounded-DEFAULT gap-1.5",
   md: "h-10 px-4 text-xs rounded-DEFAULT gap-2",
   lg: "h-12 px-6 text-sm rounded-DEFAULT gap-2.5",
   icon: "h-10 w-10 p-0 rounded-DEFAULT justify-center items-center",
 };
 
-export const Button = forwardRef(
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
     {
       className,

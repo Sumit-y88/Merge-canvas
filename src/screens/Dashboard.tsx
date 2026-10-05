@@ -141,11 +141,11 @@ const Dashboard = () => {
     router.push("/login");
   };
 
-  const formatTime = (dateStr) => {
+  const formatTime = (dateStr?: string | Date) => {
     if (!dateStr) return "Just now";
     const d = new Date(dateStr);
     const now = new Date();
-    const diffMs = now - d;
+    const diffMs = now.getTime() - d.getTime();
     const diffMin = Math.floor(diffMs / 60000);
     if (diffMin < 1) return "Just now";
     if (diffMin < 60) return `${diffMin}m ago`;

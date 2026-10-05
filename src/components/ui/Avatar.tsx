@@ -1,21 +1,29 @@
-import { useState } from "react";
+import { useState, type HTMLAttributes } from "react";
 import { cn } from "../../lib/utils";
 
-const sizeClasses = {
+export interface AvatarProps extends HTMLAttributes<HTMLDivElement> {
+  src?: string | null;
+  name?: string;
+  size?: "sm" | "md" | "lg" | "xl";
+  status?: "online" | "offline" | "away" | "busy";
+  statusColor?: string;
+}
+
+const sizeClasses: Record<string, string> = {
   sm: "w-7 h-7 text-xs",
   md: "w-9 h-9 text-xs font-semibold",
   lg: "w-11 h-11 text-sm font-semibold",
   xl: "w-14 h-14 text-base font-bold",
 };
 
-const statusSizeClasses = {
+const statusSizeClasses: Record<string, string> = {
   sm: "w-2 h-2",
   md: "w-2.5 h-2.5",
   lg: "w-3 h-3",
   xl: "w-3.5 h-3.5",
 };
 
-const statusClasses = {
+const statusClasses: Record<string, string> = {
   online: "bg-success",
   offline: "bg-muted-foreground",
   away: "bg-warning",
@@ -56,7 +64,7 @@ export const Avatar = ({
   statusColor,
   className,
   ...props
-}) => {
+}: AvatarProps) => {
   const [imageError, setImageError] = useState(false);
   const initials = getInitials(name);
   const gradient = gradients[getGradientIndex(name)];

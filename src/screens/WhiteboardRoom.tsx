@@ -21,7 +21,8 @@ import * as Y from "yjs";
 import { base64ToUpdate, canvasToYDoc, updateToBase64, yDocToCanvas } from "../lib/yjsCanvas";
 
 const WhiteboardRoom = () => {
-  const { id } = useParams();
+  const params = useParams();
+  const id = (Array.isArray(params?.id) ? params.id[0] : (params?.id as string)) || "";
   const router = useRouter();
   const { user } = useAuth();
   const [room, setRoom] = useState(null);
@@ -98,7 +99,10 @@ const WhiteboardRoom = () => {
   }, []);
 
   useEffect(() => {
-    if (loading || !yDocRef.current) return undefined;
+    if (loading || !id) return undefined;
+    if (!yDocRef.current) {
+      yDocRef.current = new Y.Doc();
+    }
 
     const connection = connectRoomRealtime(id, user, {
       onConnectionStateChange: (state) => {
@@ -141,33 +145,55 @@ const WhiteboardRoom = () => {
         }
       },
       onMemberLeft: (member) => {
-        const userId = member.id;
+        const memberUserId = member.id || member.user_id;
         setRemoteCursors((current) => {
           const next = { ...current };
-          delete next[userId];
+          for (const key of Object.keys(next)) {
+            if ((next[key] as any)?.userId === memberUserId || key === memberUserId) {
+              delete next[key];
+            }
+          }
           return next;
         });
         setRemoteDrafts((current) => {
-          if (!current[userId]) return current;
           const next = { ...current };
-          delete next[userId];
+          for (const key of Object.keys(next)) {
+            if ((next[key] as any)?.userId === memberUserId || key === memberUserId) {
+              delete next[key];
+            }
+          }
           return next;
         });
       },
-      onCursorUpdate: ({ userId, point, name, color }) => {
-        if (!userId || userId === (user?._id || user?.id)) return;
-        setRemoteCursors((current) => ({ ...current, [userId]: { point, name, color } }));
+      onCursorUpdate: ({ clientId: senderClientId, userId, point, name, color }) => {
+        if (senderClientId && senderClientId === connection.clientId) return;
+        if (!senderClientId) {
+          const myId = (user?.id || user?._id)?.toString();
+          if (userId && myId && userId.toString() === myId) return;
+        }
+        const cursorKey = senderClientId || userId;
+        if (!cursorKey || !point) return;
+        setRemoteCursors((current) => ({
+          ...current,
+          [cursorKey]: { point, name, color, userId },
+        }));
       },
-      onDraftUpdate: ({ userId, name, color, draft }) => {
-        if (!userId || userId === (user?._id || user?.id)) return;
+      onDraftUpdate: ({ clientId: senderClientId, userId, name, color, draft }) => {
+        if (senderClientId && senderClientId === connection.clientId) return;
+        if (!senderClientId) {
+          const myId = (user?.id || user?._id)?.toString();
+          if (userId && myId && userId.toString() === myId) return;
+        }
+        const draftKey = senderClientId || userId;
+        if (!draftKey) return;
         setRemoteDrafts((current) => {
           if (!draft) {
-            if (!current[userId]) return current;
+            if (!current[draftKey]) return current;
             const next = { ...current };
-            delete next[userId];
+            delete next[draftKey];
             return next;
           }
-          return { ...current, [userId]: { draft, name, color } };
+          return { ...current, [draftKey]: { draft, name, color, userId } };
         });
       },
       onYjsUpdate: ({ update, userId }) => {
@@ -200,8 +226,6 @@ const WhiteboardRoom = () => {
       connection.disconnect();
       realtimeRef.current = null;
       roomJoinedRef.current = false;
-      yDocRef.current?.destroy();
-      yDocRef.current = null;
       setConnectionState("disconnected");
     };
   }, [id, loading, user, router]);
@@ -310,6 +334,10 @@ const WhiteboardRoom = () => {
       }
     };
     fetchRoom();
+    return () => {
+      yDocRef.current?.destroy();
+      yDocRef.current = null;
+    };
   }, [id]);
 
   // Socket events are the low-latency path. This small reconciliation loop
@@ -443,7 +471,8 @@ const WhiteboardRoom = () => {
 
     const reader = new FileReader();
     reader.onload = () => {
-      const src = reader.result;
+      const src = typeof reader.result === "string" ? reader.result : "";
+      if (!src) return;
       const img = new Image();
       img.src = src;
       img.onload = () => {
@@ -570,7 +599,12 @@ const WhiteboardRoom = () => {
               const collaboratorUser = collaborator.user;
               const collaboratorId = typeof collaboratorUser === "object" ? collaboratorUser?._id : collaboratorUser;
               const name = typeof collaboratorUser === "object" ? collaboratorUser?.name : "Collaborator";
-              const isOnline = collaboratorId?.toString() === user?.id?.toString() || Boolean(remoteCursors[collaboratorId]);
+              const isOnline =
+                collaboratorId?.toString() === user?.id?.toString() ||
+                Boolean(remoteCursors[collaboratorId]) ||
+                Object.values(remoteCursors).some(
+                  (c: any) => c.userId?.toString() === collaboratorId?.toString()
+                );
               return (
                 <div
                   key={collaboratorId?.toString() || index}

@@ -1,7 +1,11 @@
-import { forwardRef } from "react";
+import { forwardRef, type HTMLAttributes } from "react";
 import { cn } from "../../lib/utils";
 
-export const Card = forwardRef(
+export interface CardProps extends HTMLAttributes<HTMLDivElement> {
+  variant?: "default" | "glass" | "interactive";
+}
+
+export const Card = forwardRef<HTMLDivElement, CardProps>(
   ({ className, variant = "default", children, ...props }, ref) => {
     return (
       <div
@@ -24,7 +28,7 @@ export const Card = forwardRef(
 );
 Card.displayName = "Card";
 
-export const CardHeader = forwardRef(
+export const CardHeader = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   ({ className, children, ...props }, ref) => (
     <div
       ref={ref}
@@ -37,7 +41,7 @@ export const CardHeader = forwardRef(
 );
 CardHeader.displayName = "CardHeader";
 
-export const CardTitle = forwardRef(
+export const CardTitle = forwardRef<HTMLHeadingElement, HTMLAttributes<HTMLHeadingElement>>(
   ({ className, children, ...props }, ref) => (
     <h3
       ref={ref}
@@ -53,7 +57,7 @@ export const CardTitle = forwardRef(
 );
 CardTitle.displayName = "CardTitle";
 
-export const CardDescription = forwardRef(
+export const CardDescription = forwardRef<HTMLParagraphElement, HTMLAttributes<HTMLParagraphElement>>(
   ({ className, children, ...props }, ref) => (
     <p
       ref={ref}
@@ -66,7 +70,7 @@ export const CardDescription = forwardRef(
 );
 CardDescription.displayName = "CardDescription";
 
-export const CardContent = forwardRef(
+export const CardContent = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   ({ className, children, ...props }, ref) => (
     <div ref={ref} className={cn("p-6 pt-2", className)} {...props}>
       {children}
@@ -75,7 +79,7 @@ export const CardContent = forwardRef(
 );
 CardContent.displayName = "CardContent";
 
-export const CardFooter = forwardRef(
+export const CardFooter = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   ({ className, children, ...props }, ref) => (
     <div
       ref={ref}

@@ -1,64 +1,70 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
+export interface IUser extends mongoose.Document {
+  name: string;
+  email: string;
+  password?: string;
+  googleId?: string | null;
+  avatarColor: string;
+  createdAt: Date;
+  updatedAt: Date;
+  comparePassword(candidatePassword: string): Promise<boolean>;
+}
+
 const userSchema = new mongoose.Schema(
-    {
-        name: {
-            type: String,
-            required: [true, "Name is required"],
-            trim: true,
-        },
-        email: {
-            type: String,
-            required: [true, "Email is required"],
-            unique: true,
-            lowercase: true,
-            trim: true,
-            match: [/^\S+@\S+\.\S+$/, "Please enter a valid email"],
-        },
-        password: {
-            type: String,
-            required: function () {
-                // Not required if user signed up via Google OAuth
-                return !this.googleId;
-            },
-            minlength: 6,
-            select: false, // never return password by default in queries
-        },
-        googleId: {
-            type: String,
-            default: null,
-        },
-        avatarColor: {
-            // used for live cursor color in the whiteboard
-            type: String,
-            default: function () {
-                // Cursor colors remain distinct from the warm amber accent and readable
-                // on both the cream light canvas and near-black dark canvas.
-                const colors = ["#DC2626", "#0891B2", "#2563EB", "#DB2777", "#65A30D"];
-                return colors[Math.floor(Math.random() * colors.length)];
-            },
-        },
+  {
+    name: {
+      type: String,
+      required: [true, "Name is required"],
+      trim: true,
     },
-    { timestamps: true }
+    email: {
+      type: String,
+      required: [true, "Email is required"],
+      unique: true,
+      lowercase: true,
+      trim: true,
+      match: [/^\S+@\S+\.\S+$/, "Please enter a valid email"],
+    },
+    password: {
+      type: String,
+      required: function (this: any) {
+        return !this.googleId;
+      },
+      minlength: 6,
+      select: false,
+    },
+    googleId: {
+      type: String,
+      default: null,
+    },
+    avatarColor: {
+      type: String,
+      default: function () {
+        const colors = ["#DC2626", "#0891B2", "#2563EB", "#DB2777", "#65A30D"];
+        return colors[Math.floor(Math.random() * colors.length)];
+      },
+    },
+  },
+  { timestamps: true }
 );
 
 userSchema.index(
-    { googleId: 1 },
-    { unique: true, partialFilterExpression: { googleId: { $type: "string" } } }
+  { googleId: 1 },
+  { unique: true, partialFilterExpression: { googleId: { $type: "string" } } }
 );
 
-userSchema.pre("save", async function () {
-    if (!this.isModified("password") || !this.password) return;
+userSchema.pre("save", async function (this: any) {
+  if (!this.isModified("password") || !this.password) return;
 
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
 });
 
-userSchema.methods.comparePassword = async function (candidatePassword) {
-    return bcrypt.compare(candidatePassword, this.password);
+userSchema.methods.comparePassword = async function (this: any, candidatePassword: string) {
+  return bcrypt.compare(candidatePassword, this.password);
 };
 
-const User = mongoose.models.User || mongoose.model("User", userSchema);
+const User: any = mongoose.models.User || mongoose.model("User", userSchema);
 export default User;
-

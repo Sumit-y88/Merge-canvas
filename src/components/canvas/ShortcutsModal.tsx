@@ -1,6 +1,11 @@
 import { Keyboard } from "lucide-react";
 import Modal from "../ui/Modal";
 
+export interface ShortcutsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
 const shortcutGroups = [
   {
     category: "Canvas Tools",
@@ -36,7 +41,7 @@ const shortcutGroups = [
   },
 ];
 
-const ShortcutsModal = ({ isOpen, onClose }) => (
+export const ShortcutsModal = ({ isOpen, onClose }: ShortcutsModalProps) => (
   <Modal isOpen={isOpen} onClose={onClose} title="Keyboard Shortcuts" size="md">
     <div className="p-4 space-y-6 max-h-[75vh] overflow-y-auto">
       <div className="flex items-center gap-2 text-xs text-muted-foreground bg-secondary/50 p-2.5 rounded-lg border border-border/40">

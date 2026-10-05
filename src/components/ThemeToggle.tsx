@@ -7,7 +7,12 @@ import { cn } from "../lib/utils";
 
 const emptySubscribe = () => () => {};
 
-export const ThemeToggle = ({ className, showLabel = false }) => {
+export interface ThemeToggleProps {
+  className?: string;
+  showLabel?: boolean;
+}
+
+export const ThemeToggle = ({ className, showLabel = false }: ThemeToggleProps) => {
   const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
   const { theme, toggleTheme } = useTheme();
 

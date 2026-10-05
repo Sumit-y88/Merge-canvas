@@ -5,16 +5,22 @@ import { useRouter } from "next/navigation";
 import { googleLogin } from "../api/auth";
 import useAuth from "../hooks/useAuth";
 
-const GoogleSignInButton = () => {
-  const buttonRef = useRef(null);
-  const [error, setError] = useState("");
+declare global {
+  interface Window {
+    google?: any;
+  }
+}
+
+export const GoogleSignInButton = () => {
+  const buttonRef = useRef<HTMLDivElement | null>(null);
+  const [error, setError] = useState<string>("");
   const { saveAuth } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     let cancelled = false;
     let attempts = 0;
-    let resizeObserver;
+    let resizeObserver: ResizeObserver | undefined;
 
     const renderButton = () => {
       if (cancelled) return;
@@ -30,14 +36,14 @@ const GoogleSignInButton = () => {
 
       window.google.accounts.id.initialize({
         client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
-        callback: async ({ credential }) => {
+        callback: async ({ credential }: { credential: string }) => {
           try {
             setError("");
             const data = await googleLogin(credential);
             saveAuth(data);
             router.push("/dashboard");
-          } catch (requestError) {
-            setError(requestError.response?.data?.message || "Google sign-in failed");
+          } catch (requestError: any) {
+            setError(requestError?.response?.data?.message || "Google sign-in failed");
           }
         },
       });

@@ -1,6 +1,26 @@
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { cn } from "../../lib/utils";
+
+export interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title?: string;
+  description?: string;
+  children: ReactNode;
+  footer?: ReactNode;
+  maxWidth?: string;
+  size?: "sm" | "md" | "lg" | "xl" | "full" | string;
+  className?: string;
+}
+
+const sizeClasses: Record<string, string> = {
+  sm: "max-w-sm",
+  md: "max-w-md",
+  lg: "max-w-2xl",
+  xl: "max-w-4xl",
+  full: "max-w-6xl",
+};
 
 export const Modal = ({
   isOpen,
@@ -9,11 +29,12 @@ export const Modal = ({
   description,
   children,
   footer,
-  maxWidth = "max-w-lg",
+  maxWidth,
+  size,
   className,
-}) => {
+}: ModalProps) => {
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isOpen) {
         onClose();
       }
@@ -30,6 +51,8 @@ export const Modal = ({
 
   if (!isOpen) return null;
 
+  const resolvedWidth = maxWidth || (size ? sizeClasses[size] || size : "max-w-lg");
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
       {/* Backdrop: Warm paper wash */}
@@ -43,7 +66,7 @@ export const Modal = ({
       <div
         className={cn(
           "relative w-full bg-surface text-foreground border-[2px] border-foreground rounded-DEFAULT shadow-stamp-xl overflow-hidden z-10 animate-scale-in",
-          maxWidth,
+          resolvedWidth,
           className
         )}
         role="dialog"
