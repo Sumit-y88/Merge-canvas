@@ -680,8 +680,8 @@ const WhiteboardRoom = () => {
           onOpenShortcuts={() => setShowShortcutsModal(true)}
         />
 
-        {/* Floating Left Side Tool Palette */}
-        <div className="absolute left-1.5 sm:left-4 top-1/2 -translate-y-1/2 z-20 max-h-[calc(100dvh-120px)] flex flex-col">
+        {/* Floating Tool Palette: Horizontal Top Dock on mobile (<md), Vertical Side Dock on desktop (>=md) */}
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 md:top-1/2 md:-translate-y-1/2 md:left-4 md:translate-x-0 z-30 max-w-[calc(100vw-16px)] md:max-w-none">
           <SideToolbar
             tool={activeTool}
             setTool={setActiveTool}
@@ -696,8 +696,8 @@ const WhiteboardRoom = () => {
           />
         </div>
 
-        {/* Floating Bottom Properties & Controls Bar */}
-        <div className="absolute bottom-2 sm:bottom-6 left-1/2 -translate-x-1/2 z-20 max-w-[calc(100vw-16px)] sm:max-w-none">
+        {/* Floating Bottom Properties & Controls Bar: Docked at bottom */}
+        <div className="absolute bottom-2 md:bottom-6 left-1/2 -translate-x-1/2 z-30 max-w-[calc(100vw-16px)] md:max-w-none">
           <BottomToolbar
             tool={activeTool}
             color={strokeColor}

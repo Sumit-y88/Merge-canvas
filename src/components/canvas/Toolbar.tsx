@@ -104,7 +104,7 @@ export const SideToolbar = ({
 }: SideToolbarProps) => (
   <nav
     aria-label="Drafting tools"
-    className="rounded-DEFAULT p-1 sm:p-1.5 flex flex-col items-center gap-1 sm:gap-1.5 bg-surface border-[2px] border-foreground shadow-stamp-lg transition-all max-h-[calc(100dvh-130px)] overflow-y-auto overscroll-contain touch-pan-y"
+    className="rounded-DEFAULT p-1 md:p-1.5 flex flex-row md:flex-col items-center gap-1 md:gap-1.5 bg-surface border-[2px] border-foreground shadow-stamp-lg transition-all max-w-[calc(100vw-16px)] md:max-w-none md:max-h-[calc(100dvh-130px)] overflow-x-auto md:overflow-y-auto overscroll-contain touch-pan-x md:touch-pan-y no-scrollbar"
     style={{ scrollbarWidth: "none" }}
   >
     {/* Select tool */}
@@ -113,7 +113,7 @@ export const SideToolbar = ({
       disabled={disabled}
       onClick={() => setTool("Select")}
       title="Select (V)"
-      className={`group relative p-2 rounded-DEFAULT transition-all shrink-0 ${
+      className={`group relative p-1.5 md:p-2 rounded-DEFAULT transition-all shrink-0 ${
         tool === "Select"
           ? "bg-primary text-white border border-foreground shadow-stamp-xs"
           : "text-foreground hover:bg-secondary border border-transparent hover:border-foreground/40"
@@ -123,7 +123,7 @@ export const SideToolbar = ({
       <span className="sr-only">Select tool</span>
     </button>
 
-    <div className="w-5 h-[1.5px] bg-foreground/20 my-0.5" />
+    <div className="w-[1.5px] h-4 md:w-5 md:h-[1.5px] bg-foreground/20 mx-0.5 md:my-0.5 shrink-0" />
 
     {/* Creation Tools */}
     {[
@@ -145,7 +145,7 @@ export const SideToolbar = ({
           disabled={disabled}
           onClick={() => setTool(item.name)}
           title={item.title}
-          className={`group relative p-2 rounded-DEFAULT transition-all shrink-0 ${
+          className={`group relative p-1.5 md:p-2 rounded-DEFAULT transition-all shrink-0 ${
             isActive
               ? "bg-primary text-white border border-foreground shadow-stamp-xs"
               : "text-foreground hover:bg-secondary border border-transparent hover:border-foreground/40"
@@ -157,7 +157,7 @@ export const SideToolbar = ({
       );
     })}
 
-    <div className="w-5 h-[1.5px] bg-foreground/20 my-0.5" />
+    <div className="w-[1.5px] h-4 md:w-5 md:h-[1.5px] bg-foreground/20 mx-0.5 md:my-0.5 shrink-0" />
 
     {/* Media & Templates */}
     <button
@@ -165,7 +165,7 @@ export const SideToolbar = ({
       disabled={disabled}
       onClick={onImageUpload}
       title="Upload Image (I)"
-      className="p-2 rounded-DEFAULT text-foreground hover:bg-secondary border border-transparent hover:border-foreground/40 transition-all shrink-0"
+      className="p-1.5 md:p-2 rounded-DEFAULT text-foreground hover:bg-secondary border border-transparent hover:border-foreground/40 transition-all shrink-0"
     >
       <Image className="w-4 h-4" />
       <span className="sr-only">Upload Image</span>
@@ -176,13 +176,13 @@ export const SideToolbar = ({
       disabled={disabled}
       onClick={onOpenTemplates}
       title="Architectural Blueprints"
-      className="p-2 rounded-DEFAULT text-foreground hover:bg-secondary border border-transparent hover:border-foreground/40 transition-all shrink-0"
+      className="p-1.5 md:p-2 rounded-DEFAULT text-foreground hover:bg-secondary border border-transparent hover:border-foreground/40 transition-all shrink-0"
     >
       <LayoutTemplate className="w-4 h-4" />
       <span className="sr-only">Templates</span>
     </button>
 
-    <div className="w-5 h-[1.5px] bg-foreground/20 my-0.5" />
+    <div className="w-[1.5px] h-4 md:w-5 md:h-[1.5px] bg-foreground/20 mx-0.5 md:my-0.5 shrink-0" />
 
     {/* Undo / Redo */}
     <button
@@ -190,7 +190,7 @@ export const SideToolbar = ({
       disabled={disabled || !history?.canUndo}
       onClick={history?.undo}
       title="Undo (Ctrl+Z)"
-      className="p-2 rounded-DEFAULT text-muted-foreground hover:text-foreground hover:bg-secondary border border-transparent disabled:opacity-30 transition-all shrink-0"
+      className="p-1.5 md:p-2 rounded-DEFAULT text-muted-foreground hover:text-foreground hover:bg-secondary border border-transparent disabled:opacity-30 transition-all shrink-0"
     >
       <Undo2 className="w-3.5 h-3.5" />
       <span className="sr-only">Undo</span>
@@ -201,7 +201,7 @@ export const SideToolbar = ({
       disabled={disabled || !history?.canRedo}
       onClick={history?.redo}
       title="Redo (Ctrl+Y)"
-      className="p-2 rounded-DEFAULT text-muted-foreground hover:text-foreground hover:bg-secondary border border-transparent disabled:opacity-30 transition-all shrink-0"
+      className="p-1.5 md:p-2 rounded-DEFAULT text-muted-foreground hover:text-foreground hover:bg-secondary border border-transparent disabled:opacity-30 transition-all shrink-0"
     >
       <Redo2 className="w-3.5 h-3.5" />
       <span className="sr-only">Redo</span>
@@ -212,7 +212,7 @@ export const SideToolbar = ({
       disabled={disabled}
       onClick={onClear}
       title="Clear Canvas"
-      className="p-2 rounded-DEFAULT text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-transparent transition-all shrink-0"
+      className="p-1.5 md:p-2 rounded-DEFAULT text-muted-foreground hover:text-destructive hover:bg-destructive/10 border border-transparent transition-all shrink-0"
     >
       <Trash2 className="w-3.5 h-3.5" />
       <span className="sr-only">Clear</span>
@@ -285,7 +285,10 @@ export const BottomToolbar = ({
   };
 
   return (
-    <div className="flex items-center gap-2 max-w-[95vw] overflow-x-auto p-1.5 rounded-DEFAULT bg-surface border-[2px] border-foreground shadow-stamp-lg transition-all">
+    <div
+      className="flex items-center gap-1.5 md:gap-2 max-w-[calc(100vw-16px)] md:max-w-[90vw] overflow-x-auto no-scrollbar p-1 md:p-1.5 rounded-DEFAULT bg-surface border-[2px] border-foreground shadow-stamp-lg transition-all"
+      style={{ scrollbarWidth: "none" }}
+    >
       {/* 1. Color Palette / Pigment Wells */}
       {isSticky ? (
         <div className="flex items-center gap-1.5 px-2 py-0.5 border-r border-foreground/20 shrink-0">
