@@ -4,7 +4,7 @@ import { refreshCookieName } from "../utils/tokenUtils";
 export const getCookieOptions = () => ({
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
-  sameSite: (process.env.NODE_ENV === "production" ? "none" : "lax") as "none" | "lax",
+  sameSite: ((process.env.COOKIE_SAME_SITE as "none" | "lax" | "strict") || "lax"),
   maxAge: Number(process.env.REFRESH_TOKEN_DAYS || 7) * 24 * 60 * 60,
   path: "/api/auth",
 });
