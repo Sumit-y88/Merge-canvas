@@ -1,5 +1,5 @@
 import Pusher from "pusher-js";
-import api, { getAuthToken } from "./api";
+import api from "./api";
 
 let pusherInstance: Pusher | null = null;
 
