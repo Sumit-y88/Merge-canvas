@@ -530,7 +530,7 @@ const WhiteboardRoom = () => {
   }
 
   return (
-    <div className="h-screen w-screen flex flex-col overflow-hidden bg-background select-none">
+    <div className="fixed inset-0 w-full h-[100dvh] max-w-full max-h-[100dvh] flex flex-col overflow-hidden overscroll-none touch-none select-none bg-background">
       {/* Hidden file input for Image Upload */}
       <input
         ref={imageInputRef}
@@ -541,8 +541,8 @@ const WhiteboardRoom = () => {
       />
 
       {/* Top Navigation Bar: Stitch Tactile Workshop Studio Header */}
-      <header className="h-14 border-b border-foreground bg-surface px-4 flex items-center justify-between gap-3 z-40 relative shadow-stamp shrink-0">
-        <div className="flex items-center gap-3 min-w-0">
+      <header className="h-14 border-b border-foreground bg-surface px-2.5 sm:px-4 flex items-center justify-between gap-2 sm:gap-3 z-40 relative shadow-stamp shrink-0 max-w-full overflow-hidden">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button
             onClick={() => router.push("/dashboard")}
             className="flex items-center gap-2 pr-3 border-r border-foreground/20 hover:opacity-85 transition-opacity shrink-0"
@@ -561,7 +561,7 @@ const WhiteboardRoom = () => {
               Sheet #{id ? String(id).slice(-4) : "418"}
             </span>
             <span className="text-muted-foreground text-xs hidden md:inline">/</span>
-            <h1 className="font-headline text-sm font-bold text-foreground truncate max-w-[160px] sm:max-w-[240px]">
+            <h1 className="font-headline text-xs sm:text-sm font-bold text-foreground truncate max-w-[100px] xs:max-w-[150px] sm:max-w-[240px]">
               {room?.name || "Untitled Board"}
             </h1>
             <span
@@ -592,10 +592,10 @@ const WhiteboardRoom = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           {/* Live Collaborators Presence Stack */}
-          <div className="flex items-center -space-x-1.5 mr-1">
-            {collaborators.slice(0, 4).map((collaborator, index) => {
+          <div className="flex items-center -space-x-1.5 mr-0.5 sm:mr-1">
+            {collaborators.slice(0, 3).map((collaborator, index) => {
               const collaboratorUser = collaborator.user;
               const collaboratorId = typeof collaboratorUser === "object" ? collaboratorUser?._id : collaboratorUser;
               const name = typeof collaboratorUser === "object" ? collaboratorUser?.name : "Collaborator";
@@ -609,15 +609,15 @@ const WhiteboardRoom = () => {
                 <div
                   key={collaboratorId?.toString() || index}
                   title={`${name}${isOnline ? " (online)" : " (offline)"}`}
-                  className="w-7 h-7 rounded-full border border-foreground bg-surface-container flex items-center justify-center text-[10px] font-label font-bold text-foreground shadow-stamp-xs transition-transform hover:scale-110"
+                  className="w-6 h-6 sm:w-7 sm:h-7 rounded-full border border-foreground bg-surface-container flex items-center justify-center text-[9px] sm:text-[10px] font-label font-bold text-foreground shadow-stamp-xs transition-transform hover:scale-110"
                 >
                   {name.slice(0, 2).toUpperCase()}
                 </div>
               );
             })}
-            {collaborators.length > 4 && (
-              <span className="w-7 h-7 rounded-full border border-foreground bg-secondary flex items-center justify-center text-[10px] font-label font-bold text-muted-foreground shadow-stamp-xs">
-                +{collaborators.length - 4}
+            {collaborators.length > 3 && (
+              <span className="w-6 h-6 sm:w-7 sm:h-7 rounded-full border border-foreground bg-secondary flex items-center justify-center text-[9px] sm:text-[10px] font-label font-bold text-muted-foreground shadow-stamp-xs">
+                +{collaborators.length - 3}
               </span>
             )}
           </div>
@@ -628,9 +628,9 @@ const WhiteboardRoom = () => {
             onClick={() => setShowShareModal(true)}
             title="Share board"
             leftIcon={<Share2 className="w-3.5 h-3.5" />}
-            className="h-8 px-3 gap-1.5 text-xs font-label font-bold"
+            className="h-8 px-2 sm:px-3 gap-1.5 text-xs font-label font-bold"
           >
-            <span>Share</span>
+            <span className="hidden sm:inline">Share</span>
           </Button>
 
           <Button
@@ -681,7 +681,7 @@ const WhiteboardRoom = () => {
         />
 
         {/* Floating Left Side Tool Palette */}
-        <div className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 z-20">
+        <div className="absolute left-1.5 sm:left-4 top-1/2 -translate-y-1/2 z-20 max-h-[calc(100dvh-120px)] flex flex-col">
           <SideToolbar
             tool={activeTool}
             setTool={setActiveTool}
@@ -697,7 +697,7 @@ const WhiteboardRoom = () => {
         </div>
 
         {/* Floating Bottom Properties & Controls Bar */}
-        <div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-20">
+        <div className="absolute bottom-2 sm:bottom-6 left-1/2 -translate-x-1/2 z-20 max-w-[calc(100vw-16px)] sm:max-w-none">
           <BottomToolbar
             tool={activeTool}
             color={strokeColor}

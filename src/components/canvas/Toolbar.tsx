@@ -104,7 +104,8 @@ export const SideToolbar = ({
 }: SideToolbarProps) => (
   <nav
     aria-label="Drafting tools"
-    className="rounded-DEFAULT p-1.5 flex flex-col items-center gap-1.5 bg-surface border-[2px] border-foreground shadow-stamp-lg transition-all"
+    className="rounded-DEFAULT p-1 sm:p-1.5 flex flex-col items-center gap-1 sm:gap-1.5 bg-surface border-[2px] border-foreground shadow-stamp-lg transition-all max-h-[calc(100dvh-130px)] overflow-y-auto overscroll-contain touch-pan-y"
+    style={{ scrollbarWidth: "none" }}
   >
     {/* Select tool */}
     <button

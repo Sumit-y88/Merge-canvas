@@ -110,6 +110,8 @@ const Canvas = ({
   const draftRef = useRef(null);
   const processedZoomCommandRef = useRef(null);
   const spacePressedRef = useRef(false);
+  const activePointersRef = useRef(new Map());
+  const pinchGestureRef = useRef(null);
 
   const [elements, setElements] = useState(initialElements);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -489,6 +491,42 @@ const Canvas = ({
   };
 
   const startInteraction = (event) => {
+    activePointersRef.current.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
+
+    // Handle 2-finger pinch-to-zoom & pan gesture on touch devices
+    if (activePointersRef.current.size >= 2) {
+      if (event?.currentTarget?.hasPointerCapture?.(event.pointerId)) {
+        try {
+          event.currentTarget.releasePointerCapture(event.pointerId);
+        } catch {
+          // Ignore if pointer capture was already released
+        }
+      }
+      if (interactionRef.current) {
+        publishDraft(null);
+        interactionRef.current = null;
+      }
+      setIsPanning(true);
+      const pointers = Array.from(activePointersRef.current.values());
+      const p1 = pointers[0];
+      const p2 = pointers[1];
+      const initialDistance = Math.hypot(p2.clientX - p1.clientX, p2.clientY - p1.clientY);
+      const clientMid = { x: (p1.clientX + p2.clientX) / 2, y: (p1.clientY + p2.clientY) / 2 };
+      const canvas = canvasRef.current;
+      if (canvas && initialDistance > 5) {
+        const rect = canvas.getBoundingClientRect();
+        const canvasPos = { x: clientMid.x - rect.left, y: clientMid.y - rect.top };
+        const worldCenter = { x: (canvasPos.x - pan.x) / zoom, y: (canvasPos.y - pan.y) / zoom };
+        pinchGestureRef.current = {
+          initialDistance,
+          initialZoom: zoom,
+          initialPan: { ...pan },
+          worldCenter,
+        };
+      }
+      return;
+    }
+
     onInteractionActiveChange?.(true);
     const point = getPoint(event, canvasRef.current, zoom, pan);
     const isPanGesture = event.button === 1 || spacePressedRef.current;
@@ -623,6 +661,32 @@ const Canvas = ({
   };
 
   const moveInteraction = (event) => {
+    if (activePointersRef.current.has(event.pointerId)) {
+      activePointersRef.current.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
+    }
+
+    if (activePointersRef.current.size >= 2 && pinchGestureRef.current) {
+      const pointers = Array.from(activePointersRef.current.values());
+      const p1 = pointers[0];
+      const p2 = pointers[1];
+      const currentDistance = Math.hypot(p2.clientX - p1.clientX, p2.clientY - p1.clientY);
+      const clientMid = { x: (p1.clientX + p2.clientX) / 2, y: (p1.clientY + p2.clientY) / 2 };
+      const canvas = canvasRef.current;
+      if (canvas && currentDistance > 5) {
+        const scale = currentDistance / pinchGestureRef.current.initialDistance;
+        const nextZoom = Math.min(3, Math.max(0.25, pinchGestureRef.current.initialZoom * scale));
+        const rect = canvas.getBoundingClientRect();
+        const canvasPos = { x: clientMid.x - rect.left, y: clientMid.y - rect.top };
+        const nextPan = {
+          x: canvasPos.x - pinchGestureRef.current.worldCenter.x * nextZoom,
+          y: canvasPos.y - pinchGestureRef.current.worldCenter.y * nextZoom,
+        };
+        setZoom(nextZoom);
+        setPan(nextPan);
+      }
+      return;
+    }
+
     updateCanvasCursor(event);
     onCursorMove?.(getPoint(event, canvasRef.current, zoom, pan));
     const interaction = interactionRef.current;
@@ -701,8 +765,22 @@ const Canvas = ({
   };
 
   const finishInteraction = (event) => {
+    if (event?.pointerId !== undefined) {
+      activePointersRef.current.delete(event.pointerId);
+    }
+
+    if (pinchGestureRef.current) {
+      if (activePointersRef.current.size < 2) {
+        pinchGestureRef.current = null;
+        setIsPanning(false);
+        onInteractionActiveChange?.(false);
+      }
+      return;
+    }
+
     const interaction = interactionRef.current;
     if (!interaction) {
+      setIsPanning(false);
       onInteractionActiveChange?.(false);
       publishDraft(null);
       return;
@@ -859,7 +937,26 @@ const Canvas = ({
     const canvas = canvasRef.current;
     if (!canvas) return undefined;
     canvas.addEventListener("wheel", handleWheel, { passive: false });
-    return () => canvas.removeEventListener("wheel", handleWheel);
+
+    // Prevent mobile browser page drag, bounce, and pinch-zoom on canvas touches
+    const preventCanvasTouchDefaults = (event) => {
+      if (event.cancelable) {
+        event.preventDefault();
+      }
+    };
+
+    canvas.addEventListener("touchstart", preventCanvasTouchDefaults, { passive: false });
+    canvas.addEventListener("touchmove", preventCanvasTouchDefaults, { passive: false });
+    canvas.addEventListener("touchend", preventCanvasTouchDefaults, { passive: false });
+    canvas.addEventListener("touchcancel", preventCanvasTouchDefaults, { passive: false });
+
+    return () => {
+      canvas.removeEventListener("wheel", handleWheel);
+      canvas.removeEventListener("touchstart", preventCanvasTouchDefaults);
+      canvas.removeEventListener("touchmove", preventCanvasTouchDefaults);
+      canvas.removeEventListener("touchend", preventCanvasTouchDefaults);
+      canvas.removeEventListener("touchcancel", preventCanvasTouchDefaults);
+    };
   }, [handleWheel]);
 
   return (
