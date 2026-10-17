@@ -196,6 +196,19 @@ const AuthPageShell = ({ children, activeTab = "login" }: AuthPageShellProps) =>
 
             {/* Injected Form Content */}
             {children}
+
+            {/* Free Sandbox Alternate Option */}
+            <div className="mt-5 pt-4 border-t border-foreground/15 text-center">
+              <p className="font-body text-xs text-muted-foreground mb-1">
+                Just want to sketch without an account?
+              </p>
+              <Link
+                href="/canvas"
+                className="inline-flex items-center gap-1.5 font-label text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline"
+              >
+                <span>Launch Free Canvas Sandbox →</span>
+              </Link>
+            </div>
           </div>
         </section>
 

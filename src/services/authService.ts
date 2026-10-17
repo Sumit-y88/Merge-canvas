@@ -23,6 +23,8 @@ const publicUser = (user: any) => ({
   id: user._id.toString(),
   name: user.name,
   email: user.email,
+  avatarColor: user.avatarColor || "#D85A38",
+  avatar: user.avatar || null,
 });
 
 export const registerUser = async (name: string, email: string, password?: string) => {

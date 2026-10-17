@@ -6,6 +6,7 @@ const publicProfile = (user) => ({
   name: user.name,
   email: user.email,
   avatarColor: user.avatarColor,
+  avatar: user.avatar || null,
   createdAt: user.createdAt,
 });
 
@@ -28,6 +29,8 @@ export async function PATCH(request) {
     const name = typeof body?.name === "string" ? body.name.trim() : "";
     const avatarColor =
       typeof body?.avatarColor === "string" ? body.avatarColor.trim() : undefined;
+    const avatar =
+      body?.avatar === null || typeof body?.avatar === "string" ? body.avatar : undefined;
 
     if (!name || name.length < 2 || name.length > 80) {
       return NextResponse.json(
@@ -44,6 +47,7 @@ export async function PATCH(request) {
 
     user.name = name;
     if (avatarColor) user.avatarColor = avatarColor;
+    if (avatar !== undefined) user.avatar = avatar;
     await user.save();
 
     return NextResponse.json(publicProfile(user), { status: 200 });

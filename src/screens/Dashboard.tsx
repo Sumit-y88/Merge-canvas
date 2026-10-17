@@ -12,12 +12,15 @@ import {
   Copy,
   Check,
   Compass,
+  Pencil,
+  Sparkles,
 } from "lucide-react";
 import useAuth from "../hooks/useAuth";
-import { getRooms, createRoom, joinRoom } from "../api/roomApi";
+import { getRooms, createRoom, joinRoom, saveCanvas } from "../api/roomApi";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import Modal from "../components/ui/Modal";
+import Avatar from "../components/ui/Avatar";
 import ThemeToggle from "../components/ThemeToggle";
 
 const TEMPLATE_SUGGESTIONS = [
@@ -51,6 +54,43 @@ const Dashboard = () => {
   const [inviteCode, setInviteCode] = useState("");
   const [joinLoading, setJoinLoading] = useState(false);
   const [joinError, setJoinError] = useState("");
+  const [pendingGuestBoard, setPendingGuestBoard] = useState<any>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const stored = localStorage.getItem("mergecanvas_pending_import");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.elements?.length > 0) {
+          return parsed;
+        }
+      }
+    } catch {
+      // Ignore
+    }
+    return null;
+  });
+
+  const handleImportGuestBoard = async () => {
+    if (!pendingGuestBoard) return;
+    try {
+      const newRoom = await createRoom(pendingGuestBoard.name || "Imported Scratchpad");
+      if (newRoom?._id) {
+        if (pendingGuestBoard.elements?.length > 0) {
+          await saveCanvas(newRoom._id, pendingGuestBoard.elements);
+        }
+        localStorage.removeItem("mergecanvas_pending_import");
+        setPendingGuestBoard(null);
+        router.push(`/room/${newRoom._id}`);
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Failed to import guest board");
+    }
+  };
+
+  const handleDismissGuestBoard = () => {
+    localStorage.removeItem("mergecanvas_pending_import");
+    setPendingGuestBoard(null);
+  };
 
   const fetchRooms = async () => {
     setRoomsLoading(true);
@@ -172,15 +212,6 @@ const Dashboard = () => {
     });
   }, [rooms, searchQuery, filterTab, user?.id]);
 
-  const userMonogram = user?.name
-    ? user.name
-        .split(" ")
-        .map((p) => p[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
-    : "MC";
-
   return (
     <div className="min-h-screen bg-surface text-foreground flex flex-col font-body antialiased selection:bg-primary selection:text-white">
       {/* Stitch Shared TopNavBar */}
@@ -224,14 +255,22 @@ const Dashboard = () => {
         <div className="flex items-center gap-2.5">
           <ThemeToggle />
 
-          <div className="flex items-center gap-1.5 border border-foreground bg-secondary px-2 py-1 shadow-stamp-xs">
-            <div className="w-6 h-6 bg-primary text-white border border-foreground flex items-center justify-center font-label text-[10px] font-bold">
-              {userMonogram}
-            </div>
-            <span className="font-label text-xs text-foreground hidden md:inline font-bold">
+          <Link
+            href="/profile"
+            className="flex items-center gap-2 border border-foreground bg-secondary px-2.5 py-1 shadow-stamp-xs hover:bg-secondary/80 hover:shadow-stamp-sm transition-all rounded-DEFAULT group"
+            title="Profile & Avatar Settings"
+          >
+            <Avatar
+              name={user?.name || "Architect"}
+              color={user?.avatarColor}
+              src={user?.avatar}
+              size="xs"
+              status="online"
+            />
+            <span className="font-label text-xs text-foreground hidden md:inline font-bold group-hover:text-primary transition-colors">
               {user?.name || "Architect"}
             </span>
-          </div>
+          </Link>
 
           <button
             onClick={handleLogout}
@@ -268,6 +307,15 @@ const Dashboard = () => {
 
               {/* Action Buttons */}
               <div className="flex flex-wrap items-center gap-2.5">
+                <Link
+                  href="/canvas"
+                  className="h-9 px-3 text-xs font-label font-bold rounded-DEFAULT border-[1.5px] border-foreground bg-amber-500/10 text-foreground hover:bg-amber-500/20 shadow-stamp-xs inline-flex items-center gap-1.5 transition-all"
+                  title="Open standalone guest scratchpad"
+                >
+                  <Pencil className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                  <span>Guest Scratchpad</span>
+                </Link>
+
                 <Button
                   variant="outline"
                   size="sm"
@@ -297,6 +345,41 @@ const Dashboard = () => {
                 </Button>
               </div>
             </div>
+
+            {/* Pending Guest Board Import Notice */}
+            {pendingGuestBoard && (
+              <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 bg-amber-500/15 border-[1.5px] border-amber-600/40 rounded-DEFAULT shadow-stamp">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-DEFAULT bg-amber-500/20 border border-amber-600/40 flex items-center justify-center shrink-0">
+                    <Sparkles className="w-4 h-4 text-amber-700 dark:text-amber-400" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-headline text-xs sm:text-sm font-bold text-foreground truncate">
+                      Unsaved Guest Scratchpad Found ({pendingGuestBoard.elements?.length || 0} items)
+                    </p>
+                    <p className="font-body text-[11px] text-muted-foreground">
+                      Save your guest drawing into your permanent dashboard as a collaborative board.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={handleDismissGuestBoard}
+                    className="px-2.5 py-1 text-xs font-label font-bold text-muted-foreground hover:text-foreground"
+                  >
+                    Dismiss
+                  </button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={handleImportGuestBoard}
+                    className="h-7 px-3 text-xs font-label font-bold shadow-stamp-xs"
+                  >
+                    Import to Board
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {/* Filter Matrix Pills Strip */}
             <div className="flex flex-wrap items-center gap-2 mt-5 pt-4 border-t border-foreground/20">

@@ -7,6 +7,7 @@ export interface IUser extends mongoose.Document {
   password?: string;
   googleId?: string | null;
   avatarColor: string;
+  avatar?: string | null;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -42,9 +43,13 @@ const userSchema = new mongoose.Schema(
     avatarColor: {
       type: String,
       default: function () {
-        const colors = ["#DC2626", "#0891B2", "#2563EB", "#DB2777", "#65A30D"];
+        const colors = ["#D85A38", "#2563EB", "#2E7D32", "#D97706", "#E11D48", "#0891B2", "#7C3AED"];
         return colors[Math.floor(Math.random() * colors.length)];
       },
+    },
+    avatar: {
+      type: String,
+      default: null,
     },
   },
   { timestamps: true }

@@ -57,16 +57,16 @@ export const getUserRooms = async (userId: IdType) => {
   const rooms = await Room.find({
     "collaborators.user": userId,
   } as any)
-    .populate("owner", "name email")
-    .populate("collaborators.user", "name email");
+    .populate("owner", "name email avatarColor avatar")
+    .populate("collaborators.user", "name email avatarColor avatar");
 
   return rooms;
 };
 
 export const getRoomById = async (roomId: IdType, userId: IdType) => {
   const room = await (Room.findById as any)(roomId)
-    .populate("owner", "name email")
-    .populate("collaborators.user", "name email");
+    .populate("owner", "name email avatarColor avatar")
+    .populate("collaborators.user", "name email avatarColor avatar");
 
   if (!room) {
     throw new Error("Room not found");

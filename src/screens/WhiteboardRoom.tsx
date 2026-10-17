@@ -595,10 +595,12 @@ const WhiteboardRoom = () => {
         <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           {/* Live Collaborators Presence Stack */}
           <div className="flex items-center -space-x-1.5 mr-0.5 sm:mr-1">
-            {collaborators.slice(0, 3).map((collaborator, index) => {
+            {collaborators.slice(0, 4).map((collaborator, index) => {
               const collaboratorUser = collaborator.user;
               const collaboratorId = typeof collaboratorUser === "object" ? collaboratorUser?._id : collaboratorUser;
               const name = typeof collaboratorUser === "object" ? collaboratorUser?.name : "Collaborator";
+              const avatarColor = typeof collaboratorUser === "object" ? collaboratorUser?.avatarColor : undefined;
+              const avatarSrc = typeof collaboratorUser === "object" ? collaboratorUser?.avatar : undefined;
               const isOnline =
                 collaboratorId?.toString() === user?.id?.toString() ||
                 Boolean(remoteCursors[collaboratorId]) ||
@@ -608,16 +610,23 @@ const WhiteboardRoom = () => {
               return (
                 <div
                   key={collaboratorId?.toString() || index}
-                  title={`${name}${isOnline ? " (online)" : " (offline)"}`}
-                  className="w-6 h-6 sm:w-7 sm:h-7 rounded-full border border-foreground bg-surface-container flex items-center justify-center text-[9px] sm:text-[10px] font-label font-bold text-foreground shadow-stamp-xs transition-transform hover:scale-110"
+                  className="transition-transform hover:scale-115 hover:z-20 relative"
+                  title={`${name}${isOnline ? " (active in atelier)" : " (offline)"}`}
                 >
-                  {name.slice(0, 2).toUpperCase()}
+                  <Avatar
+                    name={name}
+                    color={avatarColor}
+                    src={avatarSrc}
+                    size="xs"
+                    status={isOnline ? "online" : "offline"}
+                    className="border border-foreground shadow-stamp-xs"
+                  />
                 </div>
               );
             })}
-            {collaborators.length > 3 && (
-              <span className="w-6 h-6 sm:w-7 sm:h-7 rounded-full border border-foreground bg-secondary flex items-center justify-center text-[9px] sm:text-[10px] font-label font-bold text-muted-foreground shadow-stamp-xs">
-                +{collaborators.length - 3}
+            {collaborators.length > 4 && (
+              <span className="w-6 h-6 rounded-DEFAULT border border-foreground bg-secondary flex items-center justify-center text-[9px] font-label font-bold text-foreground shadow-stamp-xs">
+                +{collaborators.length - 4}
               </span>
             )}
           </div>
@@ -780,9 +789,11 @@ const WhiteboardRoom = () => {
                 const u = collab.user;
                 const uName = typeof u === "object" ? u.name : "User";
                 const uEmail = typeof u === "object" ? u.email : "";
+                const uColor = typeof u === "object" ? u.avatarColor : undefined;
+                const uAvatar = typeof u === "object" ? u.avatar : undefined;
                 return (
                   <div key={i} className="flex items-center gap-2 py-1">
-                    <Avatar name={uName} size="sm" />
+                    <Avatar name={uName} color={uColor} src={uAvatar} size="sm" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{uName}</p>
                       <p className="text-xs text-muted-foreground truncate">{uEmail}</p>
@@ -843,8 +854,10 @@ const WhiteboardRoom = () => {
                 const collaboratorUser = collaborator.user;
                 const collaboratorId = typeof collaboratorUser === "object" ? collaboratorUser?._id : collaboratorUser;
                 const name = typeof collaboratorUser === "object" ? collaboratorUser?.name : "Collaborator";
+                const avatarColor = typeof collaboratorUser === "object" ? collaboratorUser?.avatarColor : undefined;
+                const avatarSrc = typeof collaboratorUser === "object" ? collaboratorUser?.avatar : undefined;
                 return <div key={collaboratorId} className="flex items-center gap-2 rounded-md border border-border p-2">
-                  <Avatar name={name} size="sm" /><span className="flex-1 truncate text-sm">{name}</span><Badge variant="secondary" className="text-[10px]">{collaborator.role}</Badge>
+                  <Avatar name={name} color={avatarColor} src={avatarSrc} size="sm" /><span className="flex-1 truncate text-sm">{name}</span><Badge variant="secondary" className="text-[10px]">{collaborator.role}</Badge>
                   {isOwner && collaborator.role !== "owner" && <Button variant="ghost" size="icon" title="Remove collaborator" onClick={() => handleRemoveCollaborator(collaboratorId)}><UserMinus className="w-3.5 h-3.5 text-destructive" /></Button>}
                 </div>;
               })}

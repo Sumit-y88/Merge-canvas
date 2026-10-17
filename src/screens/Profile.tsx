@@ -1,13 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, CheckCircle2, KeyRound, LogOut, Mail, Save, UserRound } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  KeyRound,
+  LogOut,
+  Mail,
+  Save,
+  UserRound,
+  Camera,
+  Trash2,
+  Palette,
+} from "lucide-react";
 import useAuth from "../hooks/useAuth";
 import { changePassword, getProfile, updateProfile } from "../api/profileApi";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
+import Avatar from "../components/ui/Avatar";
 import ThemeToggle from "../components/ThemeToggle";
+
+const PIGMENT_SWATCHES = [
+  { name: "Terracotta", value: "#D85A38" },
+  { name: "Cobalt Blue", value: "#2563EB" },
+  { name: "Sage Mint", value: "#2E7D32" },
+  { name: "Canary Ochre", value: "#D97706" },
+  { name: "Coral Rose", value: "#E11D48" },
+  { name: "Deep Cyan", value: "#0891B2" },
+  { name: "Studio Violet", value: "#7C3AED" },
+  { name: "Carbon Ink", value: "#1C1A17" },
+];
 
 const Profile = () => {
   const router = useRouter();
@@ -15,6 +38,7 @@ const Profile = () => {
   const [profile, setProfile] = useState(user);
   const [name, setName] = useState(user?.name || "");
   const [avatarColor, setAvatarColor] = useState(user?.avatarColor || "#D85A38");
+  const [avatar, setAvatar] = useState(user?.avatar || "");
   const [loading, setLoading] = useState(true);
   const [profileSaving, setProfileSaving] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
@@ -23,6 +47,8 @@ const Profile = () => {
   const [error, setError] = useState("");
   const [passwords, setPasswords] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
 
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     const loadProfile = async () => {
       try {
@@ -30,8 +56,9 @@ const Profile = () => {
         setProfile(data);
         setName(data.name);
         setAvatarColor(data.avatarColor || "#D85A38");
+        setAvatar(data.avatar || "");
         updateUser(data);
-      } catch (requestError) {
+      } catch (requestError: any) {
         setError(requestError.response?.data?.message || "Unable to load your profile");
       } finally {
         setLoading(false);
@@ -40,17 +67,40 @@ const Profile = () => {
     loadProfile();
   }, [updateUser]);
 
+  const handleAvatarFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const maxDim = 180;
+        const scale = Math.min(maxDim / img.width, maxDim / img.height, 1);
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+        setAvatar(canvas.toDataURL("image/jpeg", 0.85));
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
   const handleProfileSave = async (event) => {
     event.preventDefault();
     setError("");
     setProfileMessage("");
     setProfileSaving(true);
     try {
-      const data = await updateProfile({ name, avatarColor });
+      const data = await updateProfile({ name, avatarColor, avatar });
       setProfile(data);
       updateUser(data);
-      setProfileMessage("Profile updated successfully");
-    } catch (requestError) {
+      setProfileMessage("Profile and avatar updated successfully");
+    } catch (requestError: any) {
       setError(requestError.response?.data?.message || "Unable to update your profile");
     } finally {
       setProfileSaving(false);
@@ -99,6 +149,15 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-surface text-foreground font-body select-none">
+      {/* Hidden file input for Avatar upload */}
+      <input
+        ref={avatarInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleAvatarFile}
+      />
+
       {/* Top App Bar */}
       <header className="h-14 border-b border-foreground bg-surface shadow-stamp flex items-center justify-between px-4 sm:px-6 relative z-10 sticky top-0">
         <div className="flex items-center gap-3">
@@ -146,9 +205,24 @@ const Profile = () => {
             <div className="washi-tape absolute -top-3 left-10 w-28 h-5 pointer-events-none" />
 
             <div className="flex flex-col sm:flex-row sm:items-center gap-6">
-              <div className="w-16 h-16 rounded-full border-[2px] border-foreground bg-secondary flex items-center justify-center font-headline text-2xl font-bold text-foreground shadow-stamp-xs">
-                {name ? name.slice(0, 2).toUpperCase() : "MC"}
+              <div className="relative group">
+                <Avatar
+                  name={name || profile?.name}
+                  color={avatarColor}
+                  src={avatar}
+                  size="xl"
+                  status="online"
+                />
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-primary text-white border border-foreground shadow-stamp-xs hover:scale-110 transition-transform"
+                  title="Upload profile photo"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                </button>
               </div>
+
               <div className="min-w-0">
                 <span className="font-label text-[10px] uppercase font-bold text-primary block">
                   ACTIVE DRAFTSMAN
@@ -184,7 +258,7 @@ const Profile = () => {
                   Draftsman Details
                 </h3>
                 <p className="font-body text-xs text-muted-foreground">
-                  Update your display signature and collaborative cursor ink tone.
+                  Update your display signature, avatar pigment tone, and profile photo.
                 </p>
               </div>
 
@@ -205,18 +279,75 @@ const Profile = () => {
                   helperText="Email changes require system admin approval."
                 />
 
-                <div className="flex items-center justify-between rounded-DEFAULT border-[1.5px] border-foreground bg-secondary px-3 py-2">
-                  <div>
-                    <p className="font-label text-xs font-bold text-foreground">Cursor Ink Well</p>
-                    <p className="font-body text-[11px] text-muted-foreground">Color of your pointer in live rooms.</p>
+                {/* Avatar Appearance & Pigment Well */}
+                <div className="rounded-DEFAULT border-[1.5px] border-foreground bg-secondary/60 p-3.5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-label text-xs font-bold text-foreground">Avatar &amp; Cursor Pigment</p>
+                      <p className="font-body text-[11px] text-muted-foreground">Color tone of your avatar &amp; room cursor.</p>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => avatarInputRef.current?.click()}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-label font-bold rounded-DEFAULT border border-foreground bg-surface hover:bg-secondary transition-colors shadow-stamp-xs"
+                      >
+                        <Camera className="w-3 h-3 text-primary" />
+                        <span>{avatar ? "Change Photo" : "Upload Photo"}</span>
+                      </button>
+                      {avatar && (
+                        <button
+                          type="button"
+                          onClick={() => setAvatar("")}
+                          className="p-1 rounded-DEFAULT border border-foreground/30 hover:bg-destructive/10 text-destructive transition-colors"
+                          title="Remove custom photo"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <input
-                    aria-label="Cursor color"
-                    type="color"
-                    value={avatarColor}
-                    onChange={(e) => setAvatarColor(e.target.value)}
-                    className="h-8 w-10 cursor-pointer rounded-DEFAULT border border-foreground bg-transparent p-0.5"
-                  />
+
+                  {/* Pigment Swatches Grid */}
+                  <div className="space-y-1.5">
+                    <span className="font-label text-[10px] uppercase font-bold text-muted-foreground">Studio Palette:</span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {PIGMENT_SWATCHES.map((swatch) => {
+                        const isSelected = avatarColor.toLowerCase() === swatch.value.toLowerCase();
+                        return (
+                          <button
+                            key={swatch.value}
+                            type="button"
+                            onClick={() => setAvatarColor(swatch.value)}
+                            title={swatch.name}
+                            className={`w-7 h-7 rounded-DEFAULT border-[1.5px] border-foreground flex items-center justify-center transition-all shadow-stamp-xs ${
+                              isSelected ? "scale-110 ring-2 ring-primary ring-offset-1" : "hover:scale-105 opacity-90 hover:opacity-100"
+                            }`}
+                            style={{ backgroundColor: swatch.value }}
+                          >
+                            {isSelected && <span className="w-2 h-2 rounded-full bg-white shadow-xs" />}
+                          </button>
+                        );
+                      })}
+
+                      {/* Custom Color input */}
+                      <div className="relative w-7 h-7 ml-1">
+                        <input
+                          aria-label="Custom pigment well"
+                          type="color"
+                          value={avatarColor}
+                          onChange={(e) => setAvatarColor(e.target.value)}
+                          className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
+                        />
+                        <div
+                          className="w-7 h-7 rounded-DEFAULT border-[1.5px] border-foreground flex items-center justify-center bg-surface hover:bg-secondary transition-colors shadow-stamp-xs"
+                          title="Custom pigment"
+                        >
+                          <Palette className="w-3.5 h-3.5 text-foreground" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {profileMessage && (
